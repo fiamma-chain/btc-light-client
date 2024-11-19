@@ -12,7 +12,7 @@ contract DeployBtcMirror is Script {
      *         testnet Bitcoin.
      */
     function run(bool mainnet) external {
-        vm.broadcast();
+        vm.startBroadcast();
 
         // Deploy BtcMirror
         BtcMirror mirror;

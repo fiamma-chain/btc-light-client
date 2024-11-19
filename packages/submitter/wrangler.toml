@@ -10,9 +10,11 @@ node_compat = true
 # Run `echo <val> | wrangler secret put <key>`
 
 [env.mainnet.vars]
-BTCMIRROR_CONTRACT_ADDR="0x2d5a67ed56afe3f56ff035e3f269bd3b230b108a"
-ETH_RPC_URL="https://sepolia.infura.io/v3/c2098b0ca85643b1ad367c0f479c98f0"
+BTCMIRROR_CONTRACT_ADDR="0x5fbdb2315678afecb367f032d93f642f64180aa3"
+ETH_RPC_URL="http://127.0.0.1:8545"
 BITCOIN_NETWORK="mainnet"
+ETH_SUBMITTER_PRIVATE_KEY = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
+GETBLOCK_API_KEY = "dcc70b70da044d63a4e4b7ef80d62bcd"
 
 [env.testnet.vars]
 BTCMIRROR_CONTRACT_ADDR="0xc8ba32cab1757528daf49033e3673fae77dcf05d"

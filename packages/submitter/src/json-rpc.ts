@@ -1,6 +1,6 @@
 interface JsonRpcOpts {
   url: string;
-  headers: { [key: string]: string };
+  // headers: { [key: string]: string };
 }
 
 interface JsonRpcReq {
@@ -28,7 +28,7 @@ export class JsonRpcClient {
     method: string,
     params: any[] | Record<string, any>
   ): Promise<JsonRpcRes> {
-    const { url, headers } = this.options;
+    const { url } = this.options;
     const req: JsonRpcReq = {
       id: this.nextID++,
       jsonrpc: "2.0",
@@ -38,7 +38,7 @@ export class JsonRpcClient {
 
     const res = await fetch(url, {
       method: "POST",
-      headers: { ...headers, "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(req),
     });
 
