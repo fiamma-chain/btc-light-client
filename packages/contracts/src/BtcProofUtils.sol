@@ -228,7 +228,7 @@ library BtcProofUtils {
             offset += 4;
             uint256 nInScriptBytes;
             (nInScriptBytes, offset) = readVarInt(rawTx, offset);
-            require(nInScriptBytes <= 32, "Scripts over 32 bytes unsupported");
+            require(nInScriptBytes <= 34, "Scripts over 34 bytes unsupported");
             txIn.scriptLen = uint32(nInScriptBytes);
             txIn.script = bytes32(rawTx[offset:offset + nInScriptBytes]);
             offset += nInScriptBytes;
@@ -251,7 +251,7 @@ library BtcProofUtils {
             offset += 8;
             uint256 nOutScriptBytes;
             (nOutScriptBytes, offset) = readVarInt(rawTx, offset);
-            require(nOutScriptBytes <= 32, "Scripts over 32 bytes unsupported");
+            require(nOutScriptBytes <= 34, "Scripts over 34 bytes unsupported");
             txOut.scriptLen = uint32(nOutScriptBytes);
             txOut.script = rawTx[offset:offset + nOutScriptBytes];
             offset += nOutScriptBytes;
