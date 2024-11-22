@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.13;
 
 import "./BtcTxProof.sol";
 import "./IBtcMirror.sol";
@@ -16,7 +16,7 @@ interface IBtcTxVerifier {
         uint256 blockNum,
         BtcTxProof calldata inclusionProof,
         uint256 txOutIx,
-        bytes20 destScriptHash,
+        bytes32 destScriptHash,
         uint256 amountSats
     ) external view returns (bool);
 

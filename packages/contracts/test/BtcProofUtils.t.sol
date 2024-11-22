@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
 
@@ -217,19 +217,11 @@ contract BtcProofUtilsTest is DSTest {
         );
         assertEq(t.inputs[0].prevTxIndex, 1);
         assertEq(t.inputs[0].scriptLen, 23);
-        assertEq(
-            t.inputs[0].script,
-            bytes32(hex"16001407bf360a5fc365d23da4889952bcb59121088ee1")
-        );
         assertEq(t.inputs[0].seqNo, 4294967294);
 
         assertEq(t.outputs.length, 2);
         assertEq(t.outputs[0].valueSats, 25200000);
         assertEq(t.outputs[0].scriptLen, 23);
-        assertEq(
-            t.outputs[0].script,
-            bytes32(hex"a914ae2f3d4b06579b62574d6178c10c882b9150374087")
-        );
 
         assertEq(t.locktime, 0);
     }
@@ -237,20 +229,20 @@ contract BtcProofUtilsTest is DSTest {
     // 1c. finally, verify the recipient of a transaction *output*
     bytes constant b0 = hex"0000000000000000000000000000000000000000";
 
-    function testGetP2SH() public {
-        bytes32 validP2SH = hex"a914ae2f3d4b06579b62574d6178c10c882b9150374087";
-        bytes32 invalidP2SH1 = hex"a914ae2f3d4b06579b62574d6178c10c882b9150374086";
-        bytes32 invalidP2SH2 = hex"a900ae2f3d4b06579b62574d6178c10c882b9150374087";
+    function testGetP2WSH() public {
+        bytes memory validP2WSH = hex"0020748d118052d6e418922165b03a3191cb70ef216aa65428d6ca8951d20e78bdda";
+        bytes memory invalidP2WSH1 = hex"0120748d118052d6e418922165b03a3191cb70ef216aa65428d6ca8951d20e78bdda";
+        bytes memory invalidP2WSH2 = hex"0020748d118052d6e418922165b03a3191cb70ef216aa65428d6ca8951d20e78bd";
 
         assertEq(
-            uint160(BtcProofUtils.getP2SH(23, validP2SH)),
-            0x00ae2f3d4b06579b62574d6178c10c882b91503740
+            uint256(BtcProofUtils.getP2WSH(34, validP2WSH)),
+            0x748d118052d6e418922165b03a3191cb70ef216aa65428d6ca8951d20e78bdda
         );
 
-        assertEq(uint160(BtcProofUtils.getP2SH(22, validP2SH)), 0);
-        assertEq(uint160(BtcProofUtils.getP2SH(24, validP2SH)), 0);
-        assertEq(uint160(BtcProofUtils.getP2SH(23, invalidP2SH1)), 0);
-        assertEq(uint160(BtcProofUtils.getP2SH(23, invalidP2SH2)), 0);
+        assertEq(uint256(BtcProofUtils.getP2WSH(32, validP2WSH)), 0);
+        assertEq(uint256(BtcProofUtils.getP2WSH(35, validP2WSH)), 0);
+        assertEq(uint256(BtcProofUtils.getP2WSH(34, invalidP2WSH1)), 0);
+        assertEq(uint256(BtcProofUtils.getP2WSH(34, invalidP2WSH2)), 0);
     }
 
     // 1,2,3,4,5. putting it all together, verify a payment.

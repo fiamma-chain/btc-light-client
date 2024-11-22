@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.13;
 
 import "./Endian.sol";
 import "./interfaces/BtcTxProof.sol";
@@ -50,7 +50,7 @@ struct BitcoinTxOut {
     /** @dev Output script length */
     uint32 scriptLen;
     /** @dev Output script. Over 32 bytes unsupported.  */
-    bytes32 script;
+    bytes script;
 }
 
 //
@@ -94,7 +94,7 @@ library BtcProofUtils {
         bytes32 blockHash,
         BtcTxProof calldata txProof,
         uint256 txOutIx,
-        bytes20 destScriptHash,
+        bytes32 destScriptHash,
         uint256 satoshisExpected
     ) internal pure returns (bool) {
         // 5. Block header to block hash
@@ -118,7 +118,7 @@ library BtcProofUtils {
         // 1. Finally, validate raw transaction pays stated recipient.
         BitcoinTx memory parsedTx = parseBitcoinTx(txProof.rawTx);
         BitcoinTxOut memory txo = parsedTx.outputs[txOutIx];
-        bytes20 actualScriptHash = getP2SH(txo.scriptLen, txo.script);
+        bytes32 actualScriptHash = getP2WSH(txo.scriptLen, txo.script);
         require(destScriptHash == actualScriptHash, "Script hash mismatch");
         require(txo.valueSats == satoshisExpected, "Amount mismatch");
 
@@ -253,7 +253,7 @@ library BtcProofUtils {
             (nOutScriptBytes, offset) = readVarInt(rawTx, offset);
             require(nOutScriptBytes <= 32, "Scripts over 32 bytes unsupported");
             txOut.scriptLen = uint32(nOutScriptBytes);
-            txOut.script = bytes32(rawTx[offset:offset + nOutScriptBytes]);
+            txOut.script = rawTx[offset:offset + nOutScriptBytes];
             offset += nOutScriptBytes;
             ret.outputs[i] = txOut;
         }
@@ -296,22 +296,27 @@ library BtcProofUtils {
     }
 
     /**
-     * @dev Verifies that `script` is a standard P2SH (pay to script hash) tx.
-     * @return hash The recipient script hash, or 0 if verification failed.
+     * @dev Verifies that `script` is a standard P2WSH (pay to witness script hash) tx.
+     * @return result The recipient script hash, or 0 if verification failed.
      */
-    function getP2SH(uint256 scriptLen, bytes32 script)
+    function getP2WSH(uint256 scriptLen, bytes memory script)
         internal
         pure
-        returns (bytes20)
+        returns (bytes32 result)
     {
-        if (scriptLen != 23) {
+        if (scriptLen != 34) {
             return 0;
         }
-        if (script[0] != 0xa9 || script[1] != 0x14 || script[22] != 0x87) {
+        // index 0: Witness version 0
+        // index 1: OP_PUSHBYTES_32
+        if (script[0] != 0x00 || script[1] != 0x20) {
             return 0;
         }
-        uint256 sHash = (uint256(script) >> 80) &
-            0x00ffffffffffffffffffffffffffffffffffffffff;
-        return bytes20(uint160(sHash));
+
+        assembly {
+            // add(data, 32) skip script length
+            // jump to index 2
+            result := mload(add(add(script, 32), 2))
+        }
     }
 }
