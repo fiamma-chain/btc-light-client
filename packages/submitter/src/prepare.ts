@@ -14,9 +14,9 @@ function bitsToTarget(bitsHex: string): string {
     const exp = bytes[0];
     
     // Get mantissa from first three bytes
-    let mantissa = bytes[0];
-    mantissa = (mantissa << 8) | bytes[1];
+    let mantissa = bytes[1];
     mantissa = (mantissa << 8) | bytes[2];
+    mantissa = (mantissa << 8) | bytes[3];
 
     console.log(`exponent: ${exp}`);
     console.log(`coefficient: ${mantissa}`);
