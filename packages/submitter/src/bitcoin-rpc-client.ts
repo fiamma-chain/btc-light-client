@@ -28,7 +28,8 @@ export function createGetblockClient(
 ) {
   if (!apiKey) throw new Error("Missing GetBlock API key");
   return new JsonRpcClient({
-    url: `https://go.getblock.io/${apiKey}/`
+    // url: `https://go.getblock.io/${apiKey}/`
+    url: `http://127.0.0.1:18443` // TODO: use for local regtest
   });
 }
 

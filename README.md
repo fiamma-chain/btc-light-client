@@ -60,7 +60,7 @@ npm start
 
 ### Deploy the contract
 
-Before run deploy script, use `yarn prepare bits` to get the expected target.
+Before run deploy script, use [Bitcoin Target Calculator](https://blockchain-academy.hs-mittweida.de/bitcoin-target/) to get the expected target.
 
 Ensure `ETHERSCAN_API_KEY` is set. Then, run the following to deploy and verify.
 

@@ -1,3 +1,5 @@
+import { base64 } from "ethers/lib/utils";
+
 interface JsonRpcOpts {
   url: string;
   // headers: { [key: string]: string };
@@ -38,7 +40,7 @@ export class JsonRpcClient {
 
     const res = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "Authorization": 'Basic ' + Buffer.from("test:1234").toString('base64') }, // TODO: use for local regtest
       body: JSON.stringify(req),
     });
 
