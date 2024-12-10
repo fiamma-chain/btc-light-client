@@ -5,8 +5,7 @@
   "repository": "dcposch/btcmirror",
   "main": "src/index.ts",
   "scripts": {
-    "start": "ts-node src/cli.ts",
-    "prepare": "ts-node src/prepare.ts"
+    "start": "ts-node src/cli.ts"
   },
   "author": "",
   "license": "UNLICENSED",
