@@ -47,7 +47,8 @@ The submitter will run automatically and reliably, on a schedule. See `wrangler.
 You'll need to configure a few secrets, including `ETH_SUBMITTER_PRIVATE_KEY` and `ETH_RPC_URL`. You'll also need a free API key for [getblock.io](https://getblock.io). Set `GETBLOCK_API_KEY`.
 
 ```shell
-npx wrangler dev --local -e mainnet
+yarn install
+npx wrangler dev --local -e testnet
 ```
 
 ### Run the website
