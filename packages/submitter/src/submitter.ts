@@ -141,7 +141,7 @@ async function getBlockHashesToSubmit(
   console.log(`last common height ${lch}`);
   const fromHeight = lch + 1;
   const promises = [] as Promise<string>[];
-  for (let height = fromHeight; height <= targetHeight; height++) {
+  for (let height = mirrorHeight + 1; height <= targetHeight; height++) {
     promises.push(getBlockHash(rpc, height));
   }
   hashes.push(...(await Promise.all(promises)));
