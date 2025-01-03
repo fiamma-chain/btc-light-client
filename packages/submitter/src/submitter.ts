@@ -93,8 +93,10 @@ export async function submit(args: SubmitterArgs) {
     mirrorLatestHeight,
     targetHeight
   );
+  console.log(`hashes length ${hashes.length}`);
   const headers = await loadBlockHeaders(rpc, hashes);
   console.log(`Loaded BTC blocks ${fromHeight}-${targetHeight}`);
+  console.log(`headers length ${headers.length}`);
   if (headers.length !== targetHeight - fromHeight + 1) throw new Error("!#");
 
   // finally, submit a transaction to update the BTCMirror
@@ -136,7 +138,7 @@ async function getBlockHashesToSubmit(
   console.log("finding last common Bitcoin block");
   const hashes = [] as string[];
   const lch = await getLastCommonHeight(contract, rpc, mirrorHeight, hashes);
-
+  console.log(`last common height ${lch}`);
   const fromHeight = lch + 1;
   const promises = [] as Promise<string>[];
   for (let height = fromHeight; height <= targetHeight; height++) {
@@ -158,11 +160,7 @@ async function getLastCommonHeight(
   hashes: string[]
 ) {
   const maxReorg = 20;
-  for (
-    let height = mirrorLatestHeight;
-    mirrorLatestHeight - maxReorg;
-    height--
-  ) {
+  for (let height = mirrorLatestHeight; mirrorLatestHeight - maxReorg; height-- ) {
     const mirrorResult = await contract.functions["getBlockHash"](height);
     const mirrorHash = (mirrorResult[0] as string).replace("0x", "");
     const btcHash = await getBlockHash(rpc, height);
