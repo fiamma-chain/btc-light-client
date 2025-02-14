@@ -1,7 +1,9 @@
-import { base64 } from "ethers/lib/utils";
+// import { base64 } from "ethers/lib/utils";
 
 interface JsonRpcOpts {
   url: string;
+  username?: string;
+  password?: string;
   // headers: { [key: string]: string };
 }
 
@@ -30,7 +32,7 @@ export class JsonRpcClient {
     method: string,
     params: any[] | Record<string, any>
   ): Promise<JsonRpcRes> {
-    const { url } = this.options;
+    const { url, username, password } = this.options;
     const req: JsonRpcReq = {
       id: this.nextID++,
       jsonrpc: "2.0",
@@ -38,9 +40,17 @@ export class JsonRpcClient {
       params,
     };
 
+    const headers = {
+      "Content-Type": "application/json"
+    } as Record<string, string>;
+
+    if (username && password) {
+      headers["Authorization"] = 'Basic ' + Buffer.from(`${username}:${password}`).toString('base64');
+    }
+
     const res = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": 'Basic ' + Buffer.from("test:1234").toString('base64') }, // TODO: use for local regtest
+      headers,
       body: JSON.stringify(req),
     });
 
@@ -52,8 +62,8 @@ export class JsonRpcClient {
     } catch (e) {
       throw new Error(
         `JSONRPC method ${method} error ${e}, ` +
-          `${url} sent ${res.status} ${res.statusText}, ` +
-          `request ${JSON.stringify(req)}, response ${JSON.stringify(ret)}`
+        `${url} sent ${res.status} ${res.statusText}, ` +
+        `request ${JSON.stringify(req)}, response ${JSON.stringify(ret)}`
       );
     }
   }

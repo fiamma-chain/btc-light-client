@@ -1,4 +1,5 @@
 import { JsonRpcClient } from "./json-rpc";
+import { Config } from "./config";
 
 export interface BitcoinJsonRpc {
   getblockcount: [];
@@ -19,17 +20,12 @@ export interface BlockJson {
 
 export type BtcRpcClient = JsonRpcClient;
 
-/**
- * Creates a Bitcoin client pointing to getblock.io
- */
-export function createGetblockClient(
-  apiKey: string,
-  network: "testnet" | "mainnet"
-) {
-  if (!apiKey) throw new Error("Missing GetBlock API key");
+
+export function createBtcRpcClient(config: Config) {
   return new JsonRpcClient({
-    // url: `https://go.getblock.io/${apiKey}/`
-    url: `http://127.0.0.1:18443` // TODO: use for local regtest
+    url: config.btcRpcUrl,
+    username: config.btcRpcUser,
+    password: config.btcRpcPass
   });
 }
 

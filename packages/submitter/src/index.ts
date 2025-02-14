@@ -10,42 +10,28 @@
  * Learn more at https://developers.cloudflare.com/workers/runtime-apis/scheduled-event/
  */
 
-import { ethers } from "ethers";
-import { submit } from "./submitter";
+import { getConfig } from './config';
+import { BtcSubmitter } from './submitter';
 
-export interface Env {
-  // Example binding to KV. Learn more at https://developers.cloudflare.com/workers/runtime-apis/kv/
-  // MY_KV_NAMESPACE: KVNamespace;
-  //
-  // Example binding to Durable Object. Learn more at https://developers.cloudflare.com/workers/runtime-apis/durable-objects/
-  // MY_DURABLE_OBJECT: DurableObjectNamespace;
-  //
-  // Example binding to R2. Learn more at https://developers.cloudflare.com/workers/runtime-apis/r2/
-  // MY_BUCKET: R2Bucket;
+async function main() {
+  const config = getConfig();
+  const submitter = new BtcSubmitter(config);
 
-  BTCMIRROR_CONTRACT_ADDR: string;
-  ETH_RPC_URL: string;
-  ETH_SUBMITTER_PRIVATE_KEY: string;
-  GETBLOCK_API_KEY: string;
-  BITCOIN_NETWORK: "testnet" | "mainnet";
-  MAX_BLOCKS_PER_BATCH: string;
+  // Handle shutdown gracefully
+  process.on('SIGINT', () => {
+    console.log('Received SIGINT, shutting down...');
+    submitter.stop();
+  });
+
+  process.on('SIGTERM', () => {
+    console.log('Received SIGTERM, shutting down...');
+    submitter.stop();
+  });
+
+  await submitter.start();
 }
 
-export default {
-  async scheduled(
-    controller: ScheduledController,
-    env: Env,
-    ctx: ExecutionContext
-  ): Promise<void> {
-    console.log("Running BtcMirror submitter...");
-    await submit({
-      contractAddr: env.BTCMIRROR_CONTRACT_ADDR,
-      rpcUrl: env.ETH_RPC_URL,
-      privateKey: env.ETH_SUBMITTER_PRIVATE_KEY,
-      getblockApiKey: env.GETBLOCK_API_KEY,
-      bitcoinNetwork: env.BITCOIN_NETWORK,
-      maxBlocks: Number(env.MAX_BLOCKS_PER_BATCH || 10),
-    });
-    console.log("Done running BtcMirror submitter...");
-  },
-};
+main().catch(error => {
+  console.error('Fatal error:', error);
+  process.exit(1);
+});

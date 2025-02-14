@@ -6,6 +6,7 @@ async function main() {
   await submit({
     contractAddr: env.BTCMIRROR_CONTRACT_ADDR,
     rpcUrl: env.ETH_RPC_URL,
+    btcRpcUrl: env.BTC_RPC_URL,
     privateKey: env.ETH_SUBMITTER_PRIVATE_KEY,
     getblockApiKey: env.GETBLOCK_API_KEY,
     bitcoinNetwork: (env.BITCOIN_NETWORK || "mainnet") as "mainnet" | "testnet",
