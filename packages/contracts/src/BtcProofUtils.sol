@@ -95,15 +95,18 @@ library BtcProofUtils {
         BtcTxProof calldata txProof,
         uint256 txOutIx,
         bytes32 destScriptHash,
-        uint256 satoshisExpected
+        uint256 satoshisExpected,
+        bool checkOpReturn,
+        uint256 opReturnOutIx,
+        bytes32 opReturnDataExpected
     ) internal pure returns (bool) {
-        // 5. Block header to block hash
+        // 1. Block header to block hash
         require(
             getBlockHash(txProof.blockHeader) == blockHash,
             "Block hash mismatch"
         );
 
-        // 4. and 3. Transaction ID included in block
+        // 2. and 3. Transaction ID included in block
         bytes32 blockTxRoot = getBlockTxMerkleRoot(txProof.blockHeader);
         bytes32 txRoot = getTxMerkleRoot(
             txProof.txId,
@@ -112,15 +115,22 @@ library BtcProofUtils {
         );
         require(blockTxRoot == txRoot, "Tx merkle root mismatch");
 
-        // 2. Raw transaction to TxID
+        // 4. Raw transaction to TxID
         require(getTxID(txProof.rawTx) == txProof.txId, "Tx ID mismatch");
 
-        // 1. Finally, validate raw transaction pays stated recipient.
+        // 5. Finally, validate raw transaction pays stated recipient.
         BitcoinTx memory parsedTx = parseBitcoinTx(txProof.rawTx);
         BitcoinTxOut memory txo = parsedTx.outputs[txOutIx];
         bytes32 actualScriptHash = getP2WSH(txo.scriptLen, txo.script);
         require(destScriptHash == actualScriptHash, "Script hash mismatch");
         require(txo.valueSats == satoshisExpected, "Amount mismatch");
+
+        // 6. Check OP_RETURN output if requested
+        if (checkOpReturn) {
+            BitcoinTxOut memory opReturnTxo = parsedTx.outputs[opReturnOutIx];
+            bytes32 opReturnData = getOpReturnScriptData(opReturnTxo.scriptLen, opReturnTxo.script);
+            require(opReturnData == opReturnDataExpected, "OP_RETURN data mismatch");
+        }
 
         // We've verified that blockHash contains a P2SH transaction
         // that sends at least satoshisExpected to the given hash.
@@ -316,6 +326,30 @@ library BtcProofUtils {
         assembly {
             // add(data, 32) skip script length
             // jump to index 2
+            result := mload(add(add(script, 32), 2))
+        }
+    }
+
+    /**
+     * @dev Verifies that `script` is a standard OP_RETURN script, and extracts the data.
+     * @return result The data, or 0 if verification failed.
+     */
+    function getOpReturnScriptData(uint256 scriptLen, bytes memory script)
+        internal
+        pure
+        returns (bytes32 result)
+    {
+        if (scriptLen != 34) {
+            return 0;
+        }
+
+        // index 0: OP_RETURN
+        // index 1: OP_PUSHBYTES_32
+        if (script[0] != 0x6a || script[1] != 0x20) {
+            return 0;
+        }
+
+        assembly {
             result := mload(add(add(script, 32), 2))
         }
     }
