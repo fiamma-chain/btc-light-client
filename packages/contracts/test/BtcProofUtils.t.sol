@@ -266,7 +266,10 @@ contract BtcProofUtilsTest is DSTest {
             BtcTxProof(header736000, txId736, 1, txProof736, tx736),
             0,
             destScriptHash,
-            25200000
+            25200000,
+            false,
+            0,
+            0
         );
 
         // - Bad tx proof (doesn't match root)
@@ -276,7 +279,10 @@ contract BtcProofUtilsTest is DSTest {
             BtcTxProof(headerGood, txId736, 1, txProof736, tx736),
             0,
             destScriptHash,
-            25200000
+            25200000,
+            false,
+            0,
+            0
         );
 
         // - Wrong tx index
@@ -286,7 +292,10 @@ contract BtcProofUtilsTest is DSTest {
             BtcTxProof(header736000, txId736, 2, txProof736, tx736),
             0,
             destScriptHash,
-            25200000
+            25200000,
+            false,
+            0,
+            0
         );
 
         // - Wrong tx output index
@@ -296,7 +305,10 @@ contract BtcProofUtilsTest is DSTest {
             BtcTxProof(header736000, txId736, 1, txProof736, tx736),
             1,
             destScriptHash,
-            25200000
+            25200000,
+            false,
+            0,
+            0
         );
 
         // - Wrong dest script hash
@@ -306,7 +318,10 @@ contract BtcProofUtilsTest is DSTest {
             BtcTxProof(header736000, txId736, 1, txProof736, tx736),
             0,
             bytes20(hex"abcd"),
-            25200000
+            25200000,
+            false,
+            0,
+            0
         );
 
         // - Wrong amount, off by one satoshi
@@ -316,7 +331,10 @@ contract BtcProofUtilsTest is DSTest {
             BtcTxProof(header736000, txId736, 1, txProof736, tx736),
             0,
             destScriptHash,
-            25200001
+            25200001,
+            false,
+            0,
+            0
         );
     }
 
@@ -325,14 +343,20 @@ contract BtcProofUtilsTest is DSTest {
         BtcTxProof calldata txProof,
         uint256 txOutIx,
         bytes20 destScriptHash,
-        uint256 sats
+        uint256 sats,
+        bool checkOpReturn,
+        uint256 opReturnOutIx,
+        bytes32 opReturnData
     ) public pure {
         BtcProofUtils.validatePayment(
             blockHash,
             txProof,
             txOutIx,
             destScriptHash,
-            sats
+            sats,
+            checkOpReturn,
+            opReturnOutIx,
+            opReturnData
         );
     }
 }
