@@ -339,7 +339,7 @@ library BtcProofUtils {
         pure
         returns (bytes32 result)
     {
-        if (scriptLen < 2) {
+        if (scriptLen != 34) {
             return 0;
         }
 
