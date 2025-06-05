@@ -4,6 +4,27 @@ pragma solidity ^0.8.13;
 import "./Endian.sol";
 import "./interfaces/BtcTxProof.sol";
 
+/*
+ * USAGE EXAMPLE FOR OP_RETURN ADDRESS VERIFICATION:
+ *
+ * // Payment validation with automatic OP_RETURN address verification
+ * bool isValid = BtcProofUtils.validatePayment(
+ *     blockHash,
+ *     txProof,
+ *     1, // payment output index (OP_RETURN is always index 0)
+ *     destScriptHash,
+ *     1000000, // 0.01 BTC in satoshis
+ *     0x742d35Cc6634C0532925a3b8D9c02AA02fc1238e // expected recipient address
+ * );
+ *
+ * The Bitcoin transaction must have:
+ * - Output 0: OP_RETURN 0x14 <20-byte-ethereum-address> (required)
+ * - Output 1+: P2WSH payment to destScriptHash with specified amount
+ *
+ * This prevents malicious actors from using valid BTC transactions
+ * to mint tokens for different addresses on the sidechain.
+ */
+
 /**
  * @dev A parsed (but NOT fully validated) Bitcoin transaction.
  */
@@ -85,6 +106,7 @@ library BtcProofUtils {
      * 3. Transaction ID appears under transaction root (Merkle proof).
      * 4. Transaction root is part of the block header.
      * 5. Block header hashes to a given block hash.
+     * 6. OP_RETURN output (index 0) contains the expected recipient address.
      *
      * The caller must separately verify that the block hash is in the chain.
      *
@@ -95,15 +117,16 @@ library BtcProofUtils {
         BtcTxProof calldata txProof,
         uint256 txOutIx,
         bytes32 destScriptHash,
-        uint256 satoshisExpected
+        uint256 satoshisExpected,
+        address to
     ) internal pure returns (bool) {
-        // 5. Block header to block hash
+        // 1. Block header to block hash
         require(
             getBlockHash(txProof.blockHeader) == blockHash,
             "Block hash mismatch"
         );
 
-        // 4. and 3. Transaction ID included in block
+        // 2. and 3. Transaction ID included in block
         bytes32 blockTxRoot = getBlockTxMerkleRoot(txProof.blockHeader);
         bytes32 txRoot = getTxMerkleRoot(
             txProof.txId,
@@ -112,29 +135,49 @@ library BtcProofUtils {
         );
         require(blockTxRoot == txRoot, "Tx merkle root mismatch");
 
-        // 2. Raw transaction to TxID
+        // 4. Raw transaction to TxID
         require(getTxID(txProof.rawTx) == txProof.txId, "Tx ID mismatch");
 
-        // 1. Finally, validate raw transaction pays stated recipient.
+        // 5. Parse and validate transaction structure
         BitcoinTx memory parsedTx = parseBitcoinTx(txProof.rawTx);
+        require(
+            parsedTx.outputs.length >= 2,
+            "Transaction must have at least 2 outputs"
+        );
+        require(
+            txOutIx < parsedTx.outputs.length,
+            "Invalid payment output index"
+        );
+
+        // 6. Validate OP_RETURN output (index 0) contains the expected recipient address
+        BitcoinTxOut memory opReturnTxo = parsedTx.outputs[0];
+        address extractedAddress = getAddressFromOpReturn(
+            opReturnTxo.scriptLen,
+            opReturnTxo.script
+        );
+        require(
+            extractedAddress != address(0),
+            "Invalid OP_RETURN script format"
+        );
+        require(extractedAddress == to, "OP_RETURN address mismatch");
+
+        // 7. Finally, validate raw transaction pays stated recipient.
         BitcoinTxOut memory txo = parsedTx.outputs[txOutIx];
         bytes32 actualScriptHash = getP2WSH(txo.scriptLen, txo.script);
         require(destScriptHash == actualScriptHash, "Script hash mismatch");
         require(txo.valueSats == satoshisExpected, "Amount mismatch");
 
-        // We've verified that blockHash contains a P2SH transaction
-        // that sends at least satoshisExpected to the given hash.
+        // We've verified that blockHash contains a P2WSH transaction
+        // that sends satoshisExpected to the given hash and the recipient address matches.
         return true;
     }
 
     /**
      * @dev Compute a block hash given a block header.
      */
-    function getBlockHash(bytes calldata blockHeader)
-        public
-        pure
-        returns (bytes32)
-    {
+    function getBlockHash(
+        bytes calldata blockHeader
+    ) public pure returns (bytes32) {
         require(blockHeader.length == 80);
         bytes32 ret = sha256(abi.encodePacked(sha256(blockHeader)));
         return bytes32(Endian.reverse256(uint256(ret)));
@@ -143,11 +186,9 @@ library BtcProofUtils {
     /**
      * @dev Get the transactions merkle root given a block header.
      */
-    function getBlockTxMerkleRoot(bytes calldata blockHeader)
-        public
-        pure
-        returns (bytes32)
-    {
+    function getBlockTxMerkleRoot(
+        bytes calldata blockHeader
+    ) public pure returns (bytes32) {
         require(blockHeader.length == 80);
         return bytes32(blockHeader[36:68]);
     }
@@ -188,11 +229,9 @@ library BtcProofUtils {
     /**
      * @dev Recomputes the transaction ID for a raw transaction.
      */
-    function getTxID(bytes calldata rawTransaction)
-        public
-        pure
-        returns (bytes32)
-    {
+    function getTxID(
+        bytes calldata rawTransaction
+    ) public pure returns (bytes32) {
         bytes32 ret = doubleSha(rawTransaction);
         return bytes32(Endian.reverse256(uint256(ret)));
     }
@@ -201,11 +240,9 @@ library BtcProofUtils {
      * @dev Parses a HASH-SERIALIZED Bitcoin transaction.
      *      This means no flags and no segwit witnesses.
      */
-    function parseBitcoinTx(bytes calldata rawTx)
-        public
-        pure
-        returns (BitcoinTx memory ret)
-    {
+    function parseBitcoinTx(
+        bytes calldata rawTx
+    ) public pure returns (BitcoinTx memory ret) {
         ret.version = Endian.reverse32(uint32(bytes4(rawTx[0:4])));
         if (ret.version < 1 || ret.version > 2) {
             return ret; // invalid version
@@ -273,11 +310,10 @@ library BtcProofUtils {
     }
 
     /** Reads a Bitcoin-serialized varint = a u256 serialized in 1-9 bytes. */
-    function readVarInt(bytes calldata buf, uint256 offset)
-        public
-        pure
-        returns (uint256 val, uint256 newOffset)
-    {
+    function readVarInt(
+        bytes calldata buf,
+        uint256 offset
+    ) public pure returns (uint256 val, uint256 newOffset) {
         uint8 pivot = uint8(buf[offset]);
         if (pivot < 0xfd) {
             val = pivot;
@@ -299,11 +335,10 @@ library BtcProofUtils {
      * @dev Verifies that `script` is a standard P2WSH (pay to witness script hash) tx.
      * @return result The recipient script hash, or 0 if verification failed.
      */
-    function getP2WSH(uint256 scriptLen, bytes memory script)
-        internal
-        pure
-        returns (bytes32 result)
-    {
+    function getP2WSH(
+        uint256 scriptLen,
+        bytes memory script
+    ) internal pure returns (bytes32 result) {
         if (scriptLen != 34) {
             return 0;
         }
@@ -317,6 +352,77 @@ library BtcProofUtils {
             // add(data, 32) skip script length
             // jump to index 2
             result := mload(add(add(script, 32), 2))
+        }
+    }
+
+    /**
+     * @dev Extracts an Ethereum address from a standard OP_RETURN script.
+     * Expected format: OP_RETURN OP_PUSHBYTES_20 <20-byte-address>
+     * @return result The extracted address, or address(0) if verification failed.
+     */
+    function getAddressFromOpReturn(
+        uint256 scriptLen,
+        bytes memory script
+    ) internal pure returns (address result) {
+        // OP_RETURN with 20-byte address: 1 + 1 + 20 = 22 bytes
+        if (scriptLen != 22) {
+            return address(0);
+        }
+
+        // index 0: OP_RETURN (0x6a)
+        // index 1: OP_PUSHBYTES_20 (0x14)
+        if (script[0] != 0x6a || script[1] != 0x14) {
+            return address(0);
+        }
+
+        // Extract 20-byte address starting from index 2
+        assembly {
+            // Load 32 bytes from script starting at offset 2
+            // The address is in the lower 20 bytes
+            let addressData := mload(add(add(script, 32), 2))
+            // Shift right to get only the address bytes (160 bits = 20 bytes)
+            result := shr(96, addressData)
+        }
+    }
+
+    /**
+     * @dev Verifies that `script` is a standard OP_RETURN script with 32-byte data, and extracts the data.
+     * @return result The data, or 0 if verification failed.
+     */
+    function getOpReturnScriptData(
+        uint256 scriptLen,
+        bytes memory script
+    ) internal pure returns (bytes32 result) {
+        if (scriptLen != 34) {
+            return 0;
+        }
+
+        // index 0: OP_RETURN
+        // index 1: OP_PUSHBYTES_32
+        if (script[0] != 0x6a || script[1] != 0x20) {
+            return 0;
+        }
+
+        assembly {
+            result := mload(add(add(script, 32), 2))
+        }
+    }
+
+    /**
+     * @dev Creates a standard OP_RETURN script for testing purposes.
+     * @param targetAddress The Ethereum address to embed in the OP_RETURN.
+     * @return script The resulting OP_RETURN script bytes.
+     */
+    function createOpReturnScript(
+        address targetAddress
+    ) internal pure returns (bytes memory script) {
+        script = new bytes(22);
+        script[0] = 0x6a; // OP_RETURN
+        script[1] = 0x14; // OP_PUSHBYTES_20
+
+        // Copy address bytes
+        assembly {
+            mstore(add(script, 34), shl(96, targetAddress))
         }
     }
 }

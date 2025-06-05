@@ -42,6 +42,7 @@ contract BtcTxVerifier is IBtcTxVerifier {
         uint256 txOutIx,
         bytes32 destScriptHash,
         uint256 amountSats
+        address to,
     ) external view returns (bool) {
         {
             uint256 mirrorHeight = mirror.getLatestBlockHeight();
@@ -65,7 +66,8 @@ contract BtcTxVerifier is IBtcTxVerifier {
                 inclusionProof,
                 txOutIx,
                 destScriptHash,
-                amountSats
+                amountSats,
+                to,
             ),
             "Invalid transaction proof"
         );

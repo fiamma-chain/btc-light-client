@@ -326,13 +326,15 @@ contract BtcProofUtilsTest is DSTest {
         uint256 txOutIx,
         bytes20 destScriptHash,
         uint256 sats
+        address to,
     ) public pure {
         BtcProofUtils.validatePayment(
             blockHash,
             txProof,
             txOutIx,
             destScriptHash,
-            sats
+            sats,
+            to
         );
     }
 }
