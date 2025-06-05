@@ -31,6 +31,7 @@ contract BtcTxVerifierTest is DSTest {
         assertEq(mirror.getLatestBlockHeight(), 736000);
 
         BtcTxVerifier verif = new BtcTxVerifier(mirror);
+        address to = 0x7A92962b743C07FE5c70a1a96Cc89485b5d07Dea;
 
         // validate payment 736000 #1
         bytes memory header736000 = (
@@ -83,18 +84,28 @@ contract BtcTxVerifierTest is DSTest {
             tx736
         );
 
-        assertTrue(verif.verifyPayment(1, 736000, txP, 0, destSH, 25200000));
+        assertTrue(
+            verif.verifyPayment(1, 736000, txP, 0, destSH, 25200000, to)
+        );
 
         vm.expectRevert("Not enough Bitcoin block confirmations");
-        assertTrue(!verif.verifyPayment(2, 736000, txP, 0, destSH, 25200000));
+        assertTrue(
+            !verif.verifyPayment(2, 736000, txP, 0, destSH, 25200000, to)
+        );
 
         vm.expectRevert("Amount mismatch");
-        assertTrue(!verif.verifyPayment(1, 736000, txP, 0, destSH, 25200001));
+        assertTrue(
+            !verif.verifyPayment(1, 736000, txP, 0, destSH, 25200001, to)
+        );
 
         vm.expectRevert("Script hash mismatch");
-        assertTrue(!verif.verifyPayment(1, 736000, txP, 1, destSH, 25200000));
+        assertTrue(
+            !verif.verifyPayment(1, 736000, txP, 1, destSH, 25200000, to)
+        );
 
         vm.expectRevert("Block hash mismatch");
-        assertTrue(!verif.verifyPayment(1, 700000, txP, 0, destSH, 25200000));
+        assertTrue(
+            !verif.verifyPayment(1, 700000, txP, 0, destSH, 25200000, to)
+        );
     }
 }

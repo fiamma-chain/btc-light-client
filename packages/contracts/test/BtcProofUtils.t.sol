@@ -195,11 +195,11 @@ contract BtcProofUtilsTest is DSTest {
         assertEq(newOffset, 3);
 
         (val, newOffset) = BtcProofUtils.readVarInt(buf2to16, 0);
-        assertEq(val, 2**16);
+        assertEq(val, 2 ** 16);
         assertEq(newOffset, 5);
 
         (val, newOffset) = BtcProofUtils.readVarInt(buf2to32, 0);
-        assertEq(val, 2**32);
+        assertEq(val, 2 ** 32);
         assertEq(newOffset, 9);
     }
 
@@ -230,9 +230,12 @@ contract BtcProofUtilsTest is DSTest {
     bytes constant b0 = hex"0000000000000000000000000000000000000000";
 
     function testGetP2WSH() public {
-        bytes memory validP2WSH = hex"0020748d118052d6e418922165b03a3191cb70ef216aa65428d6ca8951d20e78bdda";
-        bytes memory invalidP2WSH1 = hex"0120748d118052d6e418922165b03a3191cb70ef216aa65428d6ca8951d20e78bdda";
-        bytes memory invalidP2WSH2 = hex"0020748d118052d6e418922165b03a3191cb70ef216aa65428d6ca8951d20e78bd";
+        bytes
+            memory validP2WSH = hex"0020748d118052d6e418922165b03a3191cb70ef216aa65428d6ca8951d20e78bdda";
+        bytes
+            memory invalidP2WSH1 = hex"0120748d118052d6e418922165b03a3191cb70ef216aa65428d6ca8951d20e78bdda";
+        bytes
+            memory invalidP2WSH2 = hex"0020748d118052d6e418922165b03a3191cb70ef216aa65428d6ca8951d20e78bd";
 
         assertEq(
             uint256(BtcProofUtils.getP2WSH(34, validP2WSH)),
@@ -248,16 +251,10 @@ contract BtcProofUtilsTest is DSTest {
     // 1,2,3,4,5. putting it all together, verify a payment.
     function testValidatePayment() public {
         bytes32 txId736 = 0x3667d5beede7d89e41b0ec456f99c93d6cc5e5caff4c4a5f993caea477b4b9b9;
-        bytes20 destScriptHash = hex"ae2f3d4b06579b62574d6178c10c882b91503740";
-
-        // Should succeed
-        // this.validate(
-        //     blockHash736000,
-        //     BtcTxProof(header736000, txId736, 1, txProof736, tx736),
-        //     0,
-        //     destScriptHash,
-        //     25200000
-        // );
+        bytes32 destScriptHash = bytes32(
+            hex"ae2f3d4b06579b62574d6178c10c882b91503740"
+        );
+        address to = 0x7A92962b743C07FE5c70a1a96Cc89485b5d07Dea;
 
         // Make each argument invalid, one at a time.
         vm.expectRevert("Block hash mismatch");
@@ -266,7 +263,8 @@ contract BtcProofUtilsTest is DSTest {
             BtcTxProof(header736000, txId736, 1, txProof736, tx736),
             0,
             destScriptHash,
-            25200000
+            25200000,
+            to
         );
 
         // - Bad tx proof (doesn't match root)
@@ -276,7 +274,8 @@ contract BtcProofUtilsTest is DSTest {
             BtcTxProof(headerGood, txId736, 1, txProof736, tx736),
             0,
             destScriptHash,
-            25200000
+            25200000,
+            to
         );
 
         // - Wrong tx index
@@ -286,7 +285,8 @@ contract BtcProofUtilsTest is DSTest {
             BtcTxProof(header736000, txId736, 2, txProof736, tx736),
             0,
             destScriptHash,
-            25200000
+            25200000,
+            to
         );
 
         // - Wrong tx output index
@@ -296,7 +296,8 @@ contract BtcProofUtilsTest is DSTest {
             BtcTxProof(header736000, txId736, 1, txProof736, tx736),
             1,
             destScriptHash,
-            25200000
+            25200000,
+            to
         );
 
         // - Wrong dest script hash
@@ -305,8 +306,9 @@ contract BtcProofUtilsTest is DSTest {
             blockHash736000,
             BtcTxProof(header736000, txId736, 1, txProof736, tx736),
             0,
-            bytes20(hex"abcd"),
-            25200000
+            bytes32(hex"abcd"),
+            25200000,
+            to
         );
 
         // - Wrong amount, off by one satoshi
@@ -316,7 +318,8 @@ contract BtcProofUtilsTest is DSTest {
             BtcTxProof(header736000, txId736, 1, txProof736, tx736),
             0,
             destScriptHash,
-            25200001
+            25200001,
+            to
         );
     }
 
@@ -324,9 +327,9 @@ contract BtcProofUtilsTest is DSTest {
         bytes32 blockHash,
         BtcTxProof calldata txProof,
         uint256 txOutIx,
-        bytes20 destScriptHash,
-        uint256 sats
-        address to,
+        bytes32 destScriptHash,
+        uint256 sats,
+        address to
     ) public pure {
         BtcProofUtils.validatePayment(
             blockHash,

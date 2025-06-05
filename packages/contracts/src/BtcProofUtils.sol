@@ -14,7 +14,7 @@ import "./interfaces/BtcTxProof.sol";
  *     1, // payment output index (OP_RETURN is always index 0)
  *     destScriptHash,
  *     1000000, // 0.01 BTC in satoshis
- *     0x742d35Cc6634C0532925a3b8D9c02AA02fc1238e // expected recipient address
+ *     0x742d35Cc6634C0532925A3B8D9c02Aa02fC1238e // expected recipient address
  * );
  *
  * The Bitcoin transaction must have:
