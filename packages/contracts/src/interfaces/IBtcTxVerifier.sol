@@ -10,6 +10,9 @@ interface IBtcTxVerifier {
      * @notice Verifies that the a transaction cleared, paying a given amount to
      *         a given address. Specifically, verifies a proof that the tx was
      *         in block N, and that block N has at least M confirmations.
+     *
+     *         Also verifies that if checkOpReturn is true, the transaction has an OP_RETURN output
+     *         with the given data, and that the output is at the given index.
      */
     function verifyPayment(
         uint256 minConfirmations,
@@ -17,7 +20,10 @@ interface IBtcTxVerifier {
         BtcTxProof calldata inclusionProof,
         uint256 txOutIx,
         bytes32 destScriptHash,
-        uint256 amountSats
+        uint256 amountSats,
+        bool checkOpReturn,
+        uint256 opReturnOutIx,
+        bytes32 opReturnData
     ) external view returns (bool);
 
     /** @notice Returns the underlying mirror associated with this verifier. */
