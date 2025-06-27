@@ -41,6 +41,7 @@ contract BtcTxVerifier is IBtcTxVerifier {
         BtcTxProof calldata inclusionProof,
         uint256 txOutIx,
         bytes32 destScriptHash,
+        BitcoinScriptType scriptType,
         uint256 amountSats,
         bool checkOpReturn,
         uint256 opReturnOutIx,
@@ -62,8 +63,16 @@ contract BtcTxVerifier is IBtcTxVerifier {
 
         bytes32 blockHash = mirror.getBlockHash(blockNum);
 
-        require(
-            BtcProofUtils.validatePayment(
+        if (scriptType == BitcoinScriptType.P2TR) {
+            return BtcProofUtils.validateP2TRPayment(
+                blockHash,
+                inclusionProof,
+                txOutIx,
+                destScriptHash,
+                amountSats
+            );
+        } else if (scriptType == BitcoinScriptType.P2WSH) {
+            return BtcProofUtils.validatePayment(
                 blockHash,
                 inclusionProof,
                 txOutIx,
@@ -72,10 +81,9 @@ contract BtcTxVerifier is IBtcTxVerifier {
                 checkOpReturn,
                 opReturnOutIx,
                 opReturnData
-            ),
-            "Invalid transaction proof"
-        );
-
-        return true;
+            );
+        } else {
+            revert("Invalid script type");
+        }
     }
 }

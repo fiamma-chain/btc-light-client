@@ -137,6 +137,43 @@ library BtcProofUtils {
         return true;
     }
 
+    function validateP2TRPayment(
+        bytes32 blockHash,
+        BtcTxProof calldata txProof,
+        uint256 txOutIx,
+        bytes32 destScriptHash,
+        uint256 satoshisExpected
+    ) internal pure returns (bool) {
+        // 1. Block header to block hash
+        require(
+            getBlockHash(txProof.blockHeader) == blockHash,
+            "Block hash mismatch"
+        );
+
+        // 2. and 3. Transaction ID included in block
+        bytes32 blockTxRoot = getBlockTxMerkleRoot(txProof.blockHeader);
+        bytes32 txRoot = getTxMerkleRoot(
+            txProof.txId,
+            txProof.txIndex,
+            txProof.txMerkleProof
+        );
+        require(blockTxRoot == txRoot, "Tx merkle root mismatch");
+
+        // 4. Raw transaction to TxID
+        require(getTxID(txProof.rawTx) == txProof.txId, "Tx ID mismatch");
+
+        // 5. Finally, validate raw transaction pays stated recipient.
+        BitcoinTx memory parsedTx = parseBitcoinTx(txProof.rawTx);
+        BitcoinTxOut memory txo = parsedTx.outputs[txOutIx];
+        bytes32 actualScriptHash = getP2TR(txo.scriptLen, txo.script);
+        require(destScriptHash == actualScriptHash, "Script hash mismatch");
+        require(txo.valueSats == satoshisExpected, "Amount mismatch");
+
+        // We've verified that blockHash contains a P2TR transaction
+        // that sends at least satoshisExpected to the given hash.
+        return true;
+    }
+
     /**
      * @dev Compute a block hash given a block header.
      */
@@ -320,6 +357,27 @@ library BtcProofUtils {
         // index 0: Witness version 0
         // index 1: OP_PUSHBYTES_32
         if (script[0] != 0x00 || script[1] != 0x20) {
+            return 0;
+        }
+
+        assembly {
+            // add(data, 32) skip script length
+            // jump to index 2
+            result := mload(add(add(script, 32), 2))
+        }
+    }
+
+    function getP2TR(uint256 scriptLen, bytes memory script)
+        internal
+        pure
+        returns (bytes32 result)
+    {
+        if (scriptLen != 34) {
+            return 0;
+        }
+        // index 0: Witness version 1 (OP_1)
+        // index 1: OP_PUSHBYTES_32
+        if (script[0] != 0x51 || script[1] != 0x20) {
             return 0;
         }
 
