@@ -182,7 +182,7 @@ library BtcProofUtils {
         pure
         returns (bytes32)
     {
-        require(blockHeader.length == 80);
+        require(blockHeader.length == 80, "Invalid block header length");
         bytes32 ret = sha256(abi.encodePacked(sha256(blockHeader)));
         return bytes32(Endian.reverse256(uint256(ret)));
     }
@@ -367,6 +367,10 @@ library BtcProofUtils {
         }
     }
 
+    /**
+     * @dev Verifies that `script` is a standard P2TR (pay to taproot) tx.
+     * @return result The recipient script hash, or 0 if verification failed.
+     */
     function getP2TR(uint256 scriptLen, bytes memory script)
         internal
         pure
