@@ -6,6 +6,7 @@ import "./IBtcMirror.sol";
 
 /** @notice The type of script_pubkey used in the transaction. */
 enum BitcoinScriptType {
+    P2SH,
     P2WSH,
     P2TR
 }

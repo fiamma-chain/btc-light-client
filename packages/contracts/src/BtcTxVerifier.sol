@@ -62,28 +62,16 @@ contract BtcTxVerifier is IBtcTxVerifier {
         }
 
         bytes32 blockHash = mirror.getBlockHash(blockNum);
-
-        if (scriptType == BitcoinScriptType.P2TR) {
-            return BtcProofUtils.validateP2TRPayment(
+        return BtcProofUtils.validatePayment(
                 blockHash,
                 inclusionProof,
                 txOutIx,
                 destScriptHash,
-                amountSats
-            );
-        } else if (scriptType == BitcoinScriptType.P2WSH) {
-            return BtcProofUtils.validatePayment(
-                blockHash,
-                inclusionProof,
-                txOutIx,
-                destScriptHash,
+                scriptType,
                 amountSats,
                 checkOpReturn,
                 opReturnOutIx,
                 opReturnData
             );
-        } else {
-            revert("Invalid script type");
-        }
     }
 }

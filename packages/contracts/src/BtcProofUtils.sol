@@ -3,6 +3,7 @@ pragma solidity ^0.8.13;
 
 import "./Endian.sol";
 import "./interfaces/BtcTxProof.sol";
+import "./interfaces/IBtcTxVerifier.sol";
 
 /**
  * @dev A parsed (but NOT fully validated) Bitcoin transaction.
@@ -95,6 +96,7 @@ library BtcProofUtils {
         BtcTxProof calldata txProof,
         uint256 txOutIx,
         bytes32 destScriptHash,
+        BitcoinScriptType scriptType,
         uint256 satoshisExpected,
         bool checkOpReturn,
         uint256 opReturnOutIx,
@@ -121,7 +123,16 @@ library BtcProofUtils {
         // 5. Finally, validate raw transaction pays stated recipient.
         BitcoinTx memory parsedTx = parseBitcoinTx(txProof.rawTx);
         BitcoinTxOut memory txo = parsedTx.outputs[txOutIx];
-        bytes32 actualScriptHash = getP2WSH(txo.scriptLen, txo.script);
+        bytes32 actualScriptHash;
+        if (scriptType == BitcoinScriptType.P2WSH) {
+            actualScriptHash = getP2WSH(txo.scriptLen, txo.script);
+        } else if (scriptType == BitcoinScriptType.P2TR) {
+            actualScriptHash = getP2TR(txo.scriptLen, txo.script);
+        } else if (scriptType == BitcoinScriptType.P2SH) {
+            actualScriptHash = getP2SH(txo.scriptLen, txo.script);
+        } else {
+            revert("Invalid script type");
+        }
         require(destScriptHash == actualScriptHash, "Script hash mismatch");
         require(txo.valueSats == satoshisExpected, "Amount mismatch");
 
@@ -133,43 +144,6 @@ library BtcProofUtils {
         }
 
         // We've verified that blockHash contains a P2SH transaction
-        // that sends at least satoshisExpected to the given hash.
-        return true;
-    }
-
-    function validateP2TRPayment(
-        bytes32 blockHash,
-        BtcTxProof calldata txProof,
-        uint256 txOutIx,
-        bytes32 destScriptHash,
-        uint256 satoshisExpected
-    ) internal pure returns (bool) {
-        // 1. Block header to block hash
-        require(
-            getBlockHash(txProof.blockHeader) == blockHash,
-            "Block hash mismatch"
-        );
-
-        // 2. and 3. Transaction ID included in block
-        bytes32 blockTxRoot = getBlockTxMerkleRoot(txProof.blockHeader);
-        bytes32 txRoot = getTxMerkleRoot(
-            txProof.txId,
-            txProof.txIndex,
-            txProof.txMerkleProof
-        );
-        require(blockTxRoot == txRoot, "Tx merkle root mismatch");
-
-        // 4. Raw transaction to TxID
-        require(getTxID(txProof.rawTx) == txProof.txId, "Tx ID mismatch");
-
-        // 5. Finally, validate raw transaction pays stated recipient.
-        BitcoinTx memory parsedTx = parseBitcoinTx(txProof.rawTx);
-        BitcoinTxOut memory txo = parsedTx.outputs[txOutIx];
-        bytes32 actualScriptHash = getP2TR(txo.scriptLen, txo.script);
-        require(destScriptHash == actualScriptHash, "Script hash mismatch");
-        require(txo.valueSats == satoshisExpected, "Amount mismatch");
-
-        // We've verified that blockHash contains a P2TR transaction
         // that sends at least satoshisExpected to the given hash.
         return true;
     }
@@ -340,6 +314,27 @@ library BtcProofUtils {
             val = Endian.reverse64(uint64(bytes8(buf[offset + 1:offset + 9])));
             newOffset = offset + 9;
         }
+    }
+
+        /**
+     * @dev Verifies that `script` is a standard P2SH (pay to script hash) tx.
+     * @return hash The recipient script hash, or 0 if verification failed.
+     */
+    function getP2SH(uint256 scriptLen, bytes memory script)
+        internal
+        pure
+        returns (bytes32)
+    {
+        if (scriptLen != 23) {
+            return 0;
+        }
+        if (script[0] != 0xa9 || script[1] != 0x14 || script[22] != 0x87) {
+            return 0;
+        }
+        // Extract the 20-byte hash and left-shift to make it right-padded
+        uint256 sHash = (uint256(bytes32(script)) >> 80) &
+            0x00ffffffffffffffffffffffffffffffffffffffff;
+        return bytes32(sHash << 96);
     }
 
     /**
