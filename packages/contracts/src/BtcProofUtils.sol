@@ -3,6 +3,7 @@ pragma solidity ^0.8.13;
 
 import "./Endian.sol";
 import "./interfaces/BtcTxProof.sol";
+import "./interfaces/IBtcTxVerifier.sol";
 
 /**
  * @dev A parsed (but NOT fully validated) Bitcoin transaction.
@@ -95,6 +96,7 @@ library BtcProofUtils {
         BtcTxProof calldata txProof,
         uint256 txOutIx,
         bytes32 destScriptHash,
+        BitcoinScriptType scriptType,
         uint256 satoshisExpected,
         bool checkOpReturn,
         uint256 opReturnOutIx,
@@ -121,7 +123,16 @@ library BtcProofUtils {
         // 5. Finally, validate raw transaction pays stated recipient.
         BitcoinTx memory parsedTx = parseBitcoinTx(txProof.rawTx);
         BitcoinTxOut memory txo = parsedTx.outputs[txOutIx];
-        bytes32 actualScriptHash = getP2WSH(txo.scriptLen, txo.script);
+        bytes32 actualScriptHash;
+        if (scriptType == BitcoinScriptType.P2WSH) {
+            actualScriptHash = getP2WSH(txo.scriptLen, txo.script);
+        } else if (scriptType == BitcoinScriptType.P2TR) {
+            actualScriptHash = getP2TR(txo.scriptLen, txo.script);
+        } else if (scriptType == BitcoinScriptType.P2SH) {
+            actualScriptHash = getP2SH(txo.scriptLen, txo.script);
+        } else {
+            revert("Invalid script type");
+        }
         require(destScriptHash == actualScriptHash, "Script hash mismatch");
         require(txo.valueSats == satoshisExpected, "Amount mismatch");
 
@@ -145,7 +156,7 @@ library BtcProofUtils {
         pure
         returns (bytes32)
     {
-        require(blockHeader.length == 80);
+        require(blockHeader.length == 80, "Invalid block header length");
         bytes32 ret = sha256(abi.encodePacked(sha256(blockHeader)));
         return bytes32(Endian.reverse256(uint256(ret)));
     }
@@ -305,6 +316,27 @@ library BtcProofUtils {
         }
     }
 
+        /**
+     * @dev Verifies that `script` is a standard P2SH (pay to script hash) tx.
+     * @return hash The recipient script hash, or 0 if verification failed.
+     */
+    function getP2SH(uint256 scriptLen, bytes memory script)
+        internal
+        pure
+        returns (bytes32)
+    {
+        if (scriptLen != 23) {
+            return 0;
+        }
+        if (script[0] != 0xa9 || script[1] != 0x14 || script[22] != 0x87) {
+            return 0;
+        }
+        // Extract the 20-byte hash and left-shift to make it right-padded
+        uint256 sHash = (uint256(bytes32(script)) >> 80) &
+            0x00ffffffffffffffffffffffffffffffffffffffff;
+        return bytes32(sHash << 96);
+    }
+
     /**
      * @dev Verifies that `script` is a standard P2WSH (pay to witness script hash) tx.
      * @return result The recipient script hash, or 0 if verification failed.
@@ -320,6 +352,31 @@ library BtcProofUtils {
         // index 0: Witness version 0
         // index 1: OP_PUSHBYTES_32
         if (script[0] != 0x00 || script[1] != 0x20) {
+            return 0;
+        }
+
+        assembly {
+            // add(data, 32) skip script length
+            // jump to index 2
+            result := mload(add(add(script, 32), 2))
+        }
+    }
+
+    /**
+     * @dev Verifies that `script` is a standard P2TR (pay to taproot) tx.
+     * @return result The recipient script hash, or 0 if verification failed.
+     */
+    function getP2TR(uint256 scriptLen, bytes memory script)
+        internal
+        pure
+        returns (bytes32 result)
+    {
+        if (scriptLen != 34) {
+            return 0;
+        }
+        // index 0: Witness version 1 (OP_1)
+        // index 1: OP_PUSHBYTES_32
+        if (script[0] != 0x51 || script[1] != 0x20) {
             return 0;
         }
 
