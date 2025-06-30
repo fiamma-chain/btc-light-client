@@ -32,7 +32,7 @@ export function getConfig(): Config {
         privateKey: requireEnv('ETH_SUBMITTER_PRIVATE_KEY'),
         bitcoinNetwork: requireEnv('BITCOIN_NETWORK') as "testnet" | "mainnet",
         maxBlocks: parseInt(requireEnv('MAX_BLOCKS_PER_BATCH')),
-        pollingInterval: parseInt(process.env.POLLING_INTERVAL || '60000'), // 默认1分钟
+        pollingInterval: parseInt(process.env.POLLING_INTERVAL || '60000'), // Default 1 minute
     };
 }
 
