@@ -108,7 +108,7 @@ if ! node "$SCRIPT_DIR/gas-cost-calculator.js" \
 fi
 
 print_success "Markdown report generated successfully!"
-print_status "Report saved to: $CONTRACT_DIR/gas-cost-report.md"
+print_status "Report saved to: $SCRIPT_DIR/../gas-cost-report.md"
 
 # Step 4: Clean up temporary files
 rm -f "$SCRIPT_DIR/../forge-output.txt"

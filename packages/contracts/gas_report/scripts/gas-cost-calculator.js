@@ -227,8 +227,11 @@ function main() {
     // Output to console
     console.log(markdownReport);
 
-    // Auto save to file
-    const filename = 'gas-cost-report.md';
+    // Auto save to file in gas_report directory
+    const path = require('path');
+    const scriptDir = __dirname;
+    const gasReportDir = path.dirname(scriptDir); // Go up one level to gas_report directory
+    const filename = path.join(gasReportDir, 'gas-cost-report.md');
     fs.writeFileSync(filename, markdownReport);
     console.log(`\n📁 Markdown report saved to ${filename}`);
 }
