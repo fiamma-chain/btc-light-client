@@ -1,15 +1,15 @@
 # Gas Cost Analysis Tool
 
-An automated gas cost analysis tool that extracts gas data from Forge test reports and calculates actual ETH and USD costs.
+An automated gas cost analysis tool that extracts gas data from Forge test reports and calculates actual ETH and USD costs for individual contracts and functions.
 
 ## 📋 Features
 
 - 🔍 **Auto-parsing** Forge test gas reports
 - 💰 **Cost calculation** Calculate ETH and USD costs based on current gas prices
-- 📊 **Detailed reports** Generate formatted Markdown cost analysis reports
+- 📊 **Contract-focused reports** Generate individual contract deployment and function call costs
 - ⚙️ **Flexible configuration** Support custom gas prices and ETH prices
 - 🔄 **Automation** One-click complete analysis workflow
-- 📁 **Clean output** Automatically cleanup temporary files
+- 🧹 **Clean output** Automatically cleanup temporary files
 
 ## 🛠️ Requirements
 
@@ -41,75 +41,41 @@ gas_report/
 
 ## 🚀 Quick Start
 
-### 1. Set executable permissions
+### 1. Navigate to gas_report directory
 
 ```bash
-chmod +x gas_report/scripts/analyze-gas-costs.sh
+cd packages/contracts/gas_report
 ```
 
-### 2. Basic usage
-
-Run in your Forge project directory:
+### 2. Set executable permissions
 
 ```bash
-# Use default settings (20 gwei, $3000 ETH)
-./gas_report/scripts/analyze-gas-costs.sh
+chmod +x scripts/analyze-gas-costs.sh
+```
+
+### 3. Basic usage
+
+```bash
+# Use default settings (5 gwei, $2500 ETH)
+./scripts/analyze-gas-costs.sh
 
 # Use custom prices
-./gas_report/scripts/analyze-gas-costs.sh --gas-price 50 --eth-price 3500
+./scripts/analyze-gas-costs.sh --gas-price 20 --eth-price 3000
 ```
 
-### 3. View help information
+### 4. View help information
 
 ```bash
-./gas_report/scripts/analyze-gas-costs.sh --help
+./scripts/analyze-gas-costs.sh --help
 ```
 
-## 📊 Sample Output
+## 📊 Output
 
-After running the script, you'll see a detailed Markdown report like:
-
-```markdown
-# 📊 Gas Cost Analysis Report
-
-> **Generated on:** 12/30/2024  
-> **Configuration:** Gas Price = 20 gwei, ETH Price = $3000  
-> **Timestamp:** 2024-12-30T07:22:12.644Z
-
----
-
-## 📋 Executive Summary
-
-- **Total Contracts:** 2
-- **Total Deployment Cost:** 0.071237 ETH ($213.7100)
-- **Total Functions:** 6
-
----
-
-## 1. BtcMirror Contract
-
-### 📦 Deployment Information
-
-| Metric            | Value        |
-| ----------------- | ------------ |
-| **Gas Used**      | 1,456,824    |
-| **ETH Cost**      | 0.029136 ETH |
-| **USD Cost**      | $87.4096     |
-| **Contract Size** | 6967 bytes   |
-
-### ⚡ Function Call Costs
-
-| Function Name | Avg Gas | ETH Cost     | USD Cost | Calls |
-| ------------- | ------- | ------------ | -------- | ----- |
-| getBlockHash  | 2,835   | 0.000057 ETH | $0.1701  | 14    |
-| submit        | 68,544  | 0.001371 ETH | $4.1126  | 10    |
-
-### 💡 Usage Scenarios
-
-**Typical Scenario:** Deploy + 10 submit calls
-- **Total ETH Cost:** 0.042846 ETH
-- **Total USD Cost:** $128.5380
-```
+The script generates a comprehensive Markdown report (`gas-cost-report.md`) including:
+- Individual contract deployment costs and sizes
+- Per-transaction function call costs in ETH and USD
+- Detailed gas usage statistics (min/avg/median/max)
+- Cost comparisons at different gas price levels (1-50 gwei)
 
 ## 📄 Configuration Options
 
@@ -117,8 +83,8 @@ After running the script, you'll see a detailed Markdown report like:
 
 | Argument           | Description           | Default |
 | ------------------ | --------------------- | ------- |
-| `--gas-price GWEI` | Set gas price in gwei | 20      |
-| `--eth-price USD`  | Set ETH price in USD  | 3000    |
+| `--gas-price GWEI` | Set gas price in gwei | 5       |
+| `--eth-price USD`  | Set ETH price in USD  | 2500    |
 | `--help`           | Show help message     | -       |
 
 ### Modify Default Configuration
@@ -127,32 +93,21 @@ You can directly edit the configuration in `gas-cost-calculator.js`:
 
 ```javascript
 const CONFIG = {
-    GAS_PRICE_GWEI: 20,    // Modify default gas price
-    ETH_PRICE_USD: 3000,   // Modify default ETH price
+    GAS_PRICE_GWEI: 5,     // Modify default gas price
+    ETH_PRICE_USD: 2500,   // Modify default ETH price
     // ...
 };
 ```
 
 ## 🔧 Advanced Usage
 
-### 1. Manual Forge Output Parsing
+For manual control or integration into other workflows:
 
 ```bash
-# Generate forge report
-forge test --gas-report > my-report.txt
-
-# Parse report
-node scripts/parse-forge-report.js my-report.txt
-
-# Generate cost analysis
-node scripts/gas-cost-calculator.js
-```
-
-### 2. Pipeline Operations
-
-```bash
-# Parse directly from forge output
-forge test --gas-report | node scripts/parse-forge-report.js --stdin
+# Manual step-by-step execution
+forge test --gas-report > output.txt
+node scripts/parse-forge-report.js output.txt
+node scripts/gas-cost-calculator.js --gas-price 10 --eth-price 2800
 ```
 
 ## 📁 Output Files
@@ -182,42 +137,45 @@ The script generates the following files:
 Run with verbose output to see detailed execution steps:
 
 ```bash
-bash -x ./gas_report/scripts/analyze-gas-costs.sh
+bash -x ./scripts/analyze-gas-costs.sh
 ```
 
-## 📊 Understanding the Report
+## 📊 Report Contents
 
-### Report Sections
-
-1. **Executive Summary** - Overview of all contracts and total costs
-2. **Contract Details** - Individual contract deployment and function costs
-3. **Usage Scenarios** - Typical usage cost estimates
-4. **Cost Analysis** - Comparison at different gas price levels
-5. **Function Breakdown** - Visual representation of function costs
-6. **Detailed Metrics** - Complete statistical data
-
-### Key Metrics
-
-- **Deployment Cost**: One-time cost to deploy the contract
-- **Function Call Cost**: Per-transaction cost for each function
-- **Gas Usage**: Raw gas consumption numbers
-- **ETH Cost**: Converted cost in ETH based on gas price
-- **USD Cost**: Final cost in USD based on ETH price
+- **Deployment Cost**: One-time contract deployment cost
+- **Function Costs**: Per-call transaction costs
+- **Gas Statistics**: Min/Avg/Median/Max usage data
+- **Price Comparison**: Costs at 1, 5, 10, 20, 50 gwei levels
 
 ## 💡 Tips
 
-1. **Regular Updates**: Gas prices fluctuate, so update your analysis regularly
-2. **Network Conditions**: Mainnet gas prices can vary significantly from testnets
-3. **Optimization**: Use the report to identify high-cost functions for optimization
-4. **Scenario Planning**: The usage scenarios help estimate real-world costs
+1. **Gas Price Selection**: 
+   - **1-5 gwei**: Low-priority transactions, longer wait times
+   - **10-20 gwei**: Standard transactions, reasonable wait times
+   - **50+ gwei**: High-priority transactions, fast confirmation
+
+2. **Cost Optimization**: Use the report to identify expensive functions for optimization
+
+3. **Network Planning**: Compare costs across different gas price scenarios
+
+4. **Regular Updates**: Gas prices fluctuate, so update your analysis regularly
 
 ## 🔄 Workflow Integration
 
 This tool can be integrated into your development workflow:
 
 ```bash
+# Change to gas_report directory first
+cd packages/contracts/gas_report
+
 # In your CI/CD pipeline
-./gas_report/scripts/analyze-gas-costs.sh --gas-price 30 --eth-price 2500
+./scripts/analyze-gas-costs.sh --gas-price 10 --eth-price 2800
+
+# For mainnet cost estimation
+./scripts/analyze-gas-costs.sh --gas-price 30 --eth-price 3200
+
+# For testnet development
+./scripts/analyze-gas-costs.sh --gas-price 1 --eth-price 2000
 ```
 
 For more detailed usage examples and advanced configurations, check the individual script files. 

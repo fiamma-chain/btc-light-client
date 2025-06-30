@@ -28,8 +28,8 @@ print_error() {
 }
 
 # Default values
-GAS_PRICE_GWEI=20
-ETH_PRICE_USD=3000
+GAS_PRICE_GWEI=5
+ETH_PRICE_USD=2500
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -74,6 +74,11 @@ echo ""
 
 # Step 1: Run forge test with gas report
 print_status "Running forge test with gas reporting..."
+
+# Change to the contracts directory (where foundry.toml is located)
+CONTRACT_DIR="$(cd "$SCRIPT_DIR/../../" && pwd)"
+cd "$CONTRACT_DIR"
+
 if ! forge test --gas-report > "$SCRIPT_DIR/../forge-output.txt" 2>&1; then
     print_error "forge test failed"
     echo "Output:"
@@ -103,6 +108,7 @@ if ! node "$SCRIPT_DIR/gas-cost-calculator.js" \
 fi
 
 print_success "Markdown report generated successfully!"
+print_status "Report saved to: $CONTRACT_DIR/gas-cost-report.md"
 
 # Step 4: Clean up temporary files
 rm -f "$SCRIPT_DIR/../forge-output.txt"

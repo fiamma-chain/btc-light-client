@@ -11,10 +11,10 @@ const path = require('path');
 // Configuration parameters
 const CONFIG = {
     // Gas price (gwei) - can be adjusted based on network conditions
-    GAS_PRICE_GWEI: 20,
+    GAS_PRICE_GWEI: 5,
 
     // ETH price (USD)
-    ETH_PRICE_USD: 3000,
+    ETH_PRICE_USD: 2500,
 
     // 1 gwei = 10^9 wei, 1 ETH = 10^18 wei
     GWEI_TO_ETH: 1e-9,
@@ -87,27 +87,6 @@ function generateMarkdownReport(gasReportData, customConfig = {}) {
 
 ---
 
-## 📋 Executive Summary
-
-`;
-
-    // Calculate total cost
-    let totalDeploymentCostEth = 0;
-    let totalDeploymentCostUsd = 0;
-
-    gasReportData.contracts.forEach(contract => {
-        const deploymentEth = gasToEth(contract.deployment.cost, config.GAS_PRICE_GWEI);
-        const deploymentUsd = ethToUsd(deploymentEth, config.ETH_PRICE_USD);
-        totalDeploymentCostEth += deploymentEth;
-        totalDeploymentCostUsd += deploymentUsd;
-    });
-
-    md += `- **Total Contracts:** ${gasReportData.contracts.length}
-- **Total Deployment Cost:** ${formatNumber(totalDeploymentCostEth)} ETH (${formatUsd(totalDeploymentCostUsd)})
-- **Total Functions:** ${gasReportData.contracts.reduce((sum, c) => sum + c.functions.length, 0)}
-
----
-
 `;
 
     // Generate detailed information for each contract
@@ -117,7 +96,7 @@ function generateMarkdownReport(gasReportData, customConfig = {}) {
 
         md += `## ${index + 1}. ${contract.name} Contract
 
-### 📦 Deployment Information
+### 📦 Deployment Cost
 
 | Metric | Value |
 |--------|-------|
@@ -126,128 +105,66 @@ function generateMarkdownReport(gasReportData, customConfig = {}) {
 | **USD Cost** | ${formatUsd(deploymentUsd)} |
 | **Contract Size** | ${contract.deployment.size} bytes |
 
-### ⚡ Function Call Costs
+### ⚡ Function Call Costs (Per Transaction)
 
-| Function Name | Avg Gas | ETH Cost | USD Cost | Calls |
-|---------------|---------|----------|----------|-------|
+| Function Name | Avg Gas | ETH Cost | USD Cost |
+|---------------|---------|----------|----------|
 `;
 
         contract.functions.forEach(func => {
             const avgEth = gasToEth(func.avg, config.GAS_PRICE_GWEI);
             const avgUsd = ethToUsd(avgEth, config.ETH_PRICE_USD);
 
-            md += `| ${func.name} | ${func.avg.toLocaleString()} | ${formatNumber(avgEth)} ETH | ${formatUsd(avgUsd)} | ${func.calls} |\n`;
+            md += `| ${func.name} | ${func.avg.toLocaleString()} | ${formatNumber(avgEth)} ETH | ${formatUsd(avgUsd)} |\n`;
         });
 
-        // Usage scenario analysis
-        md += `\n### 💡 Usage Scenarios
+        md += `\n### 📊 Gas Usage Statistics
 
-`;
-
-        if (contract.name === "BtcMirror") {
-            const submitFunc = contract.functions.find(f => f.name === "submit");
-            if (submitFunc) {
-                const scenarioCost = deploymentEth + (gasToEth(submitFunc.avg, config.GAS_PRICE_GWEI) * 10);
-                const scenarioUsd = ethToUsd(scenarioCost, config.ETH_PRICE_USD);
-
-                md += `**Typical Scenario:** Deploy + 10 submit calls
-- **Total ETH Cost:** ${formatNumber(scenarioCost)} ETH
-- **Total USD Cost:** ${formatUsd(scenarioUsd)}
-
-`;
-            }
-        } else if (contract.name === "BtcTxVerifier") {
-            const verifyFunc = contract.functions.find(f => f.name === "verifyPayment");
-            if (verifyFunc) {
-                const scenarioCost = deploymentEth + (gasToEth(verifyFunc.avg, config.GAS_PRICE_GWEI) * 100);
-                const scenarioUsd = ethToUsd(scenarioCost, config.ETH_PRICE_USD);
-
-                md += `**Typical Scenario:** Deploy + 100 verification calls
-- **Total ETH Cost:** ${formatNumber(scenarioCost)} ETH
-- **Total USD Cost:** ${formatUsd(scenarioUsd)}
-
-`;
-            }
-        }
-
-        md += `---
-
-`;
-    });
-
-    // Cost comparison table
-    md += `## 🔥 Cost Analysis at Different Gas Prices
-
-| Gas Price (gwei) | Total Deployment Cost (ETH) | Total Deployment Cost (USD) |
-|------------------|------------------------------|------------------------------|
-`;
-
-    const gasPrices = [1, 5, 10, 20, 50];
-    const totalDeploymentGas = gasReportData.contracts.reduce((sum, contract) => sum + contract.deployment.cost, 0);
-
-    gasPrices.forEach(gasPrice => {
-        const ethCost = gasToEth(totalDeploymentGas, gasPrice);
-        const usdCost = ethToUsd(ethCost, config.ETH_PRICE_USD);
-        md += `| ${gasPrice} | ${formatNumber(ethCost)} ETH | ${formatUsd(usdCost)} |\n`;
-    });
-
-    md += `
----
-
-## 📈 Function Cost Breakdown
-
-`;
-
-    // Create function cost chart data for each contract
-    gasReportData.contracts.forEach(contract => {
-        md += `### ${contract.name} Functions (by Average Gas Usage)
-
-`;
-
-        // Sort by gas usage
-        const sortedFunctions = [...contract.functions].sort((a, b) => b.avg - a.avg);
-
-        sortedFunctions.forEach((func, index) => {
-            const avgEth = gasToEth(func.avg, config.GAS_PRICE_GWEI);
-            const avgUsd = ethToUsd(avgEth, config.ETH_PRICE_USD);
-
-            // Create simple ASCII bar chart
-            const maxGas = sortedFunctions[0].avg;
-            const barLength = Math.ceil((func.avg / maxGas) * 20);
-            const bar = '█'.repeat(barLength) + '░'.repeat(20 - barLength);
-
-            md += `${index + 1}. **${func.name}**  
-   \`${bar}\` ${func.avg.toLocaleString()} gas (${formatUsd(avgUsd)})
-
-`;
-        });
-    });
-
-    md += `---
-
-## 🔍 Detailed Metrics
-
-### Gas Usage Statistics
-
-`;
-
-    gasReportData.contracts.forEach(contract => {
-        md += `#### ${contract.name}
-
-| Function | Min Gas | Avg Gas | Median Gas | Max Gas | Calls |
-|----------|---------|---------|------------|---------|-------|
+| Function | Min Gas | Avg Gas | Median Gas | Max Gas | Test Calls |
+|----------|---------|---------|------------|---------|------------|
 `;
 
         contract.functions.forEach(func => {
             md += `| ${func.name} | ${func.min.toLocaleString()} | ${func.avg.toLocaleString()} | ${func.median.toLocaleString()} | ${func.max.toLocaleString()} | ${func.calls} |\n`;
         });
 
-        md += `\n`;
+        // Add cost comparison for this contract at different gas prices
+        md += `\n### 💰 Cost at Different Gas Prices
+
+#### Deployment Cost
+| Gas Price (gwei) | ETH Cost | USD Cost |
+|------------------|----------|----------|
+`;
+
+        const gasPrices = [1, 5, 10, 20, 50];
+        gasPrices.forEach(gasPrice => {
+            const ethCost = gasToEth(contract.deployment.cost, gasPrice);
+            const usdCost = ethToUsd(ethCost, config.ETH_PRICE_USD);
+            md += `| ${gasPrice} | ${formatNumber(ethCost)} ETH | ${formatUsd(usdCost)} |\n`;
+        });
+
+        // Show cost comparison for the most expensive function
+        if (contract.functions.length > 0) {
+            const mostExpensiveFunc = contract.functions.reduce((max, func) =>
+                func.avg > max.avg ? func : max
+            );
+
+            md += `\n#### ${mostExpensiveFunc.name} Function Call Cost
+| Gas Price (gwei) | ETH Cost | USD Cost |
+|------------------|----------|----------|
+`;
+
+            gasPrices.forEach(gasPrice => {
+                const ethCost = gasToEth(mostExpensiveFunc.avg, gasPrice);
+                const usdCost = ethToUsd(ethCost, config.ETH_PRICE_USD);
+                md += `| ${gasPrice} | ${formatNumber(ethCost)} ETH | ${formatUsd(usdCost)} |\n`;
+            });
+        }
+
+        md += `\n---\n\n`;
     });
 
-    md += `---
-
-## 📝 Notes
+    md += `## 📝 Notes
 
 - **Gas Price:** Current analysis uses ${config.GAS_PRICE_GWEI} gwei. Actual costs may vary based on network conditions.
 - **ETH Price:** USD calculations based on ETH price of $${config.ETH_PRICE_USD}.

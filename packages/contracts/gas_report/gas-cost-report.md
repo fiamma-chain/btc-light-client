@@ -1,140 +1,116 @@
 # 📊 Gas Cost Analysis Report
 
 > **Generated on:** 6/30/2025  
-> **Configuration:** Gas Price = 20 gwei, ETH Price = $3000  
-> **Timestamp:** 2025-06-30T07:29:48.598Z
-
----
-
-## 📋 Executive Summary
-
-- **Total Contracts:** 2
-- **Total Deployment Cost:** 0.071237 ETH ($213.7100)
-- **Total Functions:** 6
+> **Configuration:** Gas Price = 5 gwei, ETH Price = $2500  
+> **Timestamp:** 2025-06-30T07:43:01.288Z
 
 ---
 
 ## 1. BtcMirror Contract
 
-### 📦 Deployment Information
+### 📦 Deployment Cost
 
 | Metric | Value |
 |--------|-------|
 | **Gas Used** | 1,456,824 |
-| **ETH Cost** | 0.029136 ETH |
-| **USD Cost** | $87.4094 |
+| **ETH Cost** | 0.007284 ETH |
+| **USD Cost** | $18.2103 |
 | **Contract Size** | 6967 bytes |
 
-### ⚡ Function Call Costs
+### ⚡ Function Call Costs (Per Transaction)
 
-| Function Name | Avg Gas | ETH Cost | USD Cost | Calls |
-|---------------|---------|----------|----------|-------|
-| getBlockHash | 2,835 | 0.000057 ETH | $0.1701 | 14 |
-| getLatestBlockHeight | 2,475 | 0.00005 ETH | $0.1485 | 27 |
-| getLatestBlockTime | 2,455 | 0.000049 ETH | $0.1473 | 2 |
-| getTarget | 1,304 | 0.000026 ETH | $0.0782 | 3 |
-| submit | 68,544 | 0.001371 ETH | $4.1126 | 10 |
+| Function Name | Avg Gas | ETH Cost | USD Cost |
+|---------------|---------|----------|----------|
+| getBlockHash | 2,835 | 0.000014 ETH | $0.0354 |
+| getLatestBlockHeight | 2,475 | 0.000012 ETH | $0.0309 |
+| getLatestBlockTime | 2,455 | 0.000012 ETH | $0.0307 |
+| getTarget | 1,304 | 0.000007 ETH | $0.0163 |
+| submit | 68,544 | 0.000343 ETH | $0.8568 |
 
-### 💡 Usage Scenarios
+### 📊 Gas Usage Statistics
 
-**Typical Scenario:** Deploy + 10 submit calls
-- **Total ETH Cost:** 0.042845 ETH
-- **Total USD Cost:** $128.5358
-
----
-
-## 2. BtcTxVerifier Contract
-
-### 📦 Deployment Information
-
-| Metric | Value |
-|--------|-------|
-| **Gas Used** | 2,105,009 |
-| **ETH Cost** | 0.0421 ETH |
-| **USD Cost** | $126.3005 |
-| **Contract Size** | 9848 bytes |
-
-### ⚡ Function Call Costs
-
-| Function Name | Avg Gas | ETH Cost | USD Cost | Calls |
-|---------------|---------|----------|----------|-------|
-| verifyPayment | 46,821 | 0.000936 ETH | $2.8093 | 15 |
-
-### 💡 Usage Scenarios
-
-**Typical Scenario:** Deploy + 100 verification calls
-- **Total ETH Cost:** 0.135742 ETH
-- **Total USD Cost:** $407.2265
-
----
-
-## 🔥 Cost Analysis at Different Gas Prices
-
-| Gas Price (gwei) | Total Deployment Cost (ETH) | Total Deployment Cost (USD) |
-|------------------|------------------------------|------------------------------|
-| 1 | 0.003562 ETH | $10.6855 |
-| 5 | 0.017809 ETH | $53.4275 |
-| 10 | 0.035618 ETH | $106.8550 |
-| 20 | 0.071237 ETH | $213.7100 |
-| 50 | 0.178092 ETH | $534.2750 |
-
----
-
-## 📈 Function Cost Breakdown
-
-### BtcMirror Functions (by Average Gas Usage)
-
-1. **submit**  
-   `████████████████████` 68,544 gas ($4.1126)
-
-2. **getBlockHash**  
-   `█░░░░░░░░░░░░░░░░░░░` 2,835 gas ($0.1701)
-
-3. **getLatestBlockHeight**  
-   `█░░░░░░░░░░░░░░░░░░░` 2,475 gas ($0.1485)
-
-4. **getLatestBlockTime**  
-   `█░░░░░░░░░░░░░░░░░░░` 2,455 gas ($0.1473)
-
-5. **getTarget**  
-   `█░░░░░░░░░░░░░░░░░░░` 1,304 gas ($0.0782)
-
-### BtcTxVerifier Functions (by Average Gas Usage)
-
-1. **verifyPayment**  
-   `████████████████████` 46,821 gas ($2.8093)
-
----
-
-## 🔍 Detailed Metrics
-
-### Gas Usage Statistics
-
-#### BtcMirror
-
-| Function | Min Gas | Avg Gas | Median Gas | Max Gas | Calls |
-|----------|---------|---------|------------|---------|-------|
+| Function | Min Gas | Avg Gas | Median Gas | Max Gas | Test Calls |
+|----------|---------|---------|------------|---------|------------|
 | getBlockHash | 2,835 | 2,835 | 2,835 | 2,835 | 14 |
 | getLatestBlockHeight | 2,475 | 2,475 | 2,475 | 2,475 | 27 |
 | getLatestBlockTime | 2,455 | 2,455 | 2,455 | 2,455 | 2 |
 | getTarget | 1,304 | 1,304 | 1,304 | 1,304 | 3 |
 | submit | 22,928 | 68,544 | 71,617 | 138,803 | 10 |
 
-#### BtcTxVerifier
+### 💰 Cost at Different Gas Prices
 
-| Function | Min Gas | Avg Gas | Median Gas | Max Gas | Calls |
-|----------|---------|---------|------------|---------|-------|
+#### Deployment Cost
+| Gas Price (gwei) | ETH Cost | USD Cost |
+|------------------|----------|----------|
+| 1 | 0.001457 ETH | $3.6421 |
+| 5 | 0.007284 ETH | $18.2103 |
+| 10 | 0.014568 ETH | $36.4206 |
+| 20 | 0.029136 ETH | $72.8412 |
+| 50 | 0.072841 ETH | $182.1030 |
+
+#### submit Function Call Cost
+| Gas Price (gwei) | ETH Cost | USD Cost |
+|------------------|----------|----------|
+| 1 | 0.000069 ETH | $0.1714 |
+| 5 | 0.000343 ETH | $0.8568 |
+| 10 | 0.000685 ETH | $1.7136 |
+| 20 | 0.001371 ETH | $3.4272 |
+| 50 | 0.003427 ETH | $8.5680 |
+
+---
+
+## 2. BtcTxVerifier Contract
+
+### 📦 Deployment Cost
+
+| Metric | Value |
+|--------|-------|
+| **Gas Used** | 2,105,009 |
+| **ETH Cost** | 0.010525 ETH |
+| **USD Cost** | $26.3126 |
+| **Contract Size** | 9848 bytes |
+
+### ⚡ Function Call Costs (Per Transaction)
+
+| Function Name | Avg Gas | ETH Cost | USD Cost |
+|---------------|---------|----------|----------|
+| verifyPayment | 46,821 | 0.000234 ETH | $0.5853 |
+
+### 📊 Gas Usage Statistics
+
+| Function | Min Gas | Avg Gas | Median Gas | Max Gas | Test Calls |
+|----------|---------|---------|------------|---------|------------|
 | verifyPayment | 8,046 | 46,821 | 56,011 | 78,245 | 15 |
+
+### 💰 Cost at Different Gas Prices
+
+#### Deployment Cost
+| Gas Price (gwei) | ETH Cost | USD Cost |
+|------------------|----------|----------|
+| 1 | 0.002105 ETH | $5.2625 |
+| 5 | 0.010525 ETH | $26.3126 |
+| 10 | 0.02105 ETH | $52.6252 |
+| 20 | 0.0421 ETH | $105.2505 |
+| 50 | 0.10525 ETH | $263.1261 |
+
+#### verifyPayment Function Call Cost
+| Gas Price (gwei) | ETH Cost | USD Cost |
+|------------------|----------|----------|
+| 1 | 0.000047 ETH | $0.1171 |
+| 5 | 0.000234 ETH | $0.5853 |
+| 10 | 0.000468 ETH | $1.1705 |
+| 20 | 0.000936 ETH | $2.3411 |
+| 50 | 0.002341 ETH | $5.8526 |
 
 ---
 
 ## 📝 Notes
 
-- **Gas Price:** Current analysis uses 20 gwei. Actual costs may vary based on network conditions.
-- **ETH Price:** USD calculations based on ETH price of $3000.
+- **Gas Price:** Current analysis uses 5 gwei. Actual costs may vary based on network conditions.
+- **ETH Price:** USD calculations based on ETH price of $2500.
 - **Deployment Costs:** One-time costs for deploying contracts to the blockchain.
 - **Function Costs:** Per-call costs for executing contract functions.
 
 ---
 
-*Report generated by Gas Cost Analysis Tool on 2025-06-30T07:29:48.598Z*
+*Report generated by Gas Cost Analysis Tool on 2025-06-30T07:43:01.288Z*
