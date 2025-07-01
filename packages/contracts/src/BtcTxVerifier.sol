@@ -50,28 +50,22 @@ contract BtcTxVerifier is IBtcTxVerifier {
         {
             uint256 mirrorHeight = mirror.getLatestBlockHeight();
 
-            require(
-                mirrorHeight >= blockNum,
-                "Bitcoin Mirror doesn't have that block yet"
-            );
+            require(mirrorHeight >= blockNum, "Bitcoin Mirror doesn't have that block yet");
 
-            require(
-                mirrorHeight + 1 >= minConfirmations + blockNum,
-                "Not enough Bitcoin block confirmations"
-            );
+            require(mirrorHeight + 1 >= minConfirmations + blockNum, "Not enough Bitcoin block confirmations");
         }
 
         bytes32 blockHash = mirror.getBlockHash(blockNum);
         return BtcProofUtils.validatePayment(
-                blockHash,
-                inclusionProof,
-                txOutIx,
-                destScriptHash,
-                scriptType,
-                amountSats,
-                checkOpReturn,
-                opReturnOutIx,
-                opReturnData
-            );
+            blockHash,
+            inclusionProof,
+            txOutIx,
+            destScriptHash,
+            scriptType,
+            amountSats,
+            checkOpReturn,
+            opReturnOutIx,
+            opReturnData
+        );
     }
 }
