@@ -28,7 +28,7 @@ print_error() {
 }
 
 # Default values
-GAS_PRICE_GWEI=5
+GAS_PRICE_GWEI=0.03
 ETH_PRICE_USD=2500
 
 # Parse command line arguments
