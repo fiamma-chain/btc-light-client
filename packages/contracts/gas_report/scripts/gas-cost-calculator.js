@@ -189,10 +189,10 @@ function parseArgs() {
     for (let i = 0; i < args.length; i++) {
         switch (args[i]) {
             case '--gas-price':
-                config.GAS_PRICE_GWEI = parseInt(args[++i]);
+                config.GAS_PRICE_GWEI = parseFloat(args[++i]);
                 break;
             case '--eth-price':
-                config.ETH_PRICE_USD = parseInt(args[++i]);
+                config.ETH_PRICE_USD = parseFloat(args[++i]);
                 break;
             case '--help':
                 console.log('🔧 Gas Cost Analysis Tool - Markdown Report Generator');
