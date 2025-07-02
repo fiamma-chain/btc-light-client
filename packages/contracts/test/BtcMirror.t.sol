@@ -8,6 +8,8 @@ import "../src/BtcMirror.sol";
 contract BtcMirrorTest is DSTest {
     Vm vm = Vm(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D);
 
+    address owner = address(0x1234567890123456789012345678901234567890);
+
     // correct header for bitcoin block #717695
     // all bitcoin header values are little-endian:
     bytes constant bVer = hex"04002020";
@@ -54,14 +56,33 @@ contract BtcMirrorTest is DSTest {
         assertEq(mirror.getTarget(hex"206a0917"), expectedTarget);
     }
 
+    function testOnlyOwnerCanSubmit() public {
+        BtcMirror mirror = createBtcMirror();
+        assertEq(mirror.getLatestBlockHeight(), 717694);
+
+        // Test that non-owner cannot submit
+        address nonOwner = address(0x9999999999999999999999999999999999999999);
+        vm.expectRevert();
+        vm.prank(nonOwner);
+        mirror.submit(717695, headerGood);
+
+        // Test that owner can submit
+        vm.prank(owner);
+        mirror.submit(717695, headerGood);
+        assertEq(mirror.getLatestBlockHeight(), 717695);
+    }
+
     function testSubmitError() public {
         BtcMirror mirror = createBtcMirror();
         assertEq(mirror.getLatestBlockHeight(), 717694);
         vm.expectRevert("bad parent");
+        vm.prank(owner);
         mirror.submit(717695, headerWrongParentHash);
         vm.expectRevert("wrong header length");
+        vm.prank(owner);
         mirror.submit(717695, headerWrongLength);
         vm.expectRevert("block hash above target");
+        vm.prank(owner);
         mirror.submit(717695, headerHashTooEasy);
     }
 
@@ -81,7 +102,9 @@ contract BtcMirrorTest is DSTest {
     event NewTotalDifficultySinceRetarget(uint256 blockHeight, uint256 totalDifficulty, uint32 newDifficultyBits);
 
     function createBtcMirror() internal returns (BtcMirror mirror) {
+        vm.prank(owner);
         mirror = new BtcMirror(
+            owner,
             717694, // start at block #717694, two  blocks before retarget
             0x0000000000000000000b3dd6d6062aa8b7eb99d033fe29e507e0a0d81b5eaeed,
             1641627092,
@@ -95,6 +118,7 @@ contract BtcMirrorTest is DSTest {
         assertEq(mirror.getLatestBlockHeight(), 717694);
         vm.expectEmit(true, true, true, true);
         emit NewTip(717695, 1641627659, 0x00000000000000000000135a8473d7d3a3b091c928246c65ce2a396dd2a5ca9a);
+        vm.prank(owner);
         mirror.submit(717695, headerGood);
         assertEq(mirror.getLatestBlockHeight(), 717695);
         assertEq(mirror.getLatestBlockTime(), 1641627659);
@@ -103,15 +127,18 @@ contract BtcMirrorTest is DSTest {
 
     function testSubmitError2() public {
         BtcMirror mirror = createBtcMirror();
+        vm.prank(owner);
         mirror.submit(717695, headerGood);
         assertEq(mirror.getLatestBlockHeight(), 717695);
         vm.expectRevert("must submit at least one block");
+        vm.prank(owner);
         mirror.submit(717696, hex"");
         assertEq(mirror.getLatestBlockHeight(), 717695);
     }
 
     function testRetarget() public {
         BtcMirror mirror = createBtcMirror();
+        vm.prank(owner);
         mirror.submit(717695, headerGood);
         assertEq(mirror.getLatestBlockHeight(), 717695);
 
@@ -123,6 +150,7 @@ contract BtcMirrorTest is DSTest {
         );
         vm.expectEmit(true, true, true, true);
         emit NewTip(717696, 1641627937, 0x0000000000000000000335dd327bde445d83f1ce40af2736a7c279045b9a55bf);
+        vm.prank(owner);
         mirror.submit(717696, b717696);
         assertEq(mirror.getLatestBlockHeight(), 717696);
         assertEq(mirror.getLatestBlockTime(), 1641627937);
@@ -131,6 +159,7 @@ contract BtcMirrorTest is DSTest {
 
     function testRetargetLonger() public {
         BtcMirror mirror = createBtcMirror();
+        vm.prank(owner);
         mirror.submit(717695, headerGood);
         assertEq(mirror.getLatestBlockHeight(), 717695);
 
@@ -139,6 +168,7 @@ contract BtcMirrorTest is DSTest {
         vm.expectEmit(true, true, true, true);
         emit NewTip(717697, 1641628146, 0x00000000000000000000794d6f4f6ee1c09e69a81469d7456e67be3d724223fb);
         vm.recordLogs();
+        vm.prank(owner);
         mirror.submit(717695, bytes.concat(headerGood, b717696, b717697));
         assertEq(mirror.getLatestBlockHeight(), 717697);
         assertEq(vm.getRecordedLogs().length, 2);

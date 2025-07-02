@@ -18,6 +18,7 @@ contract BtcTxVerifierTest is DSTest {
 
     function testVerifyTx() public {
         BtcMirror mirror = new BtcMirror(
+            address(this),
             736000, // start at block #736000
             0x00000000000000000002d52d9816a419b45f1f0efe9a9df4f7b64161e508323d,
             0,
@@ -76,6 +77,7 @@ contract BtcTxVerifierTest is DSTest {
 
     function testVerifyP2WSHTx() public {
         BtcMirror mirror = new BtcMirror(
+            address(this),
             258185, // start at block #736000
             0x0000000bb2bfb06e7269347c26ae182fa33b3d9429089bf02857cced3ee0c2e6,
             0,
@@ -129,6 +131,7 @@ contract BtcTxVerifierTest is DSTest {
 
     function testVerifyP2TRTx() public {
         BtcMirror mirror = new BtcMirror(
+            address(this),
             251954, // start at block #251954
             0x00000008ab60e9910037c17a403348eddb4577e556bc0c336b7e0f02c7c8f44b,
             0,

@@ -3,6 +3,7 @@ pragma solidity ^0.8.13;
 
 import "./Endian.sol";
 import "./interfaces/IBtcMirror.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 //
 //                                        #
@@ -32,7 +33,7 @@ import "./interfaces/IBtcMirror.sol";
 // Bitcoin hash power is honest and at least one person is running the submitter
 // script, the BtcMirror contract always reports the current canonical Bitcoin
 // chain.
-contract BtcMirror is IBtcMirror {
+contract BtcMirror is IBtcMirror, Ownable {
     /**
      * @notice Emitted whenever the contract accepts a new heaviest chain.
      */
@@ -77,12 +78,13 @@ contract BtcMirror is IBtcMirror {
      *          checks in order to track it.
      */
     constructor(
+        address _owner,
         uint256 _blockHeight,
         bytes32 _blockHash,
         uint256 _blockTime,
         uint256 _expectedTarget,
         bool _isTestnet
-    ) {
+    ) Ownable(_owner) {
         blockHeightToHash[_blockHeight] = _blockHash;
         latestBlockHeight = _blockHeight;
         latestBlockTime = _blockTime;
@@ -114,8 +116,9 @@ contract BtcMirror is IBtcMirror {
     /**
      * Submits a new Bitcoin chain segment. Must be heavier (not necessarily
      * longer) than the chain rooted at getBlockHash(getLatestBlockHeight()).
+     * Only the owner can call this function.
      */
-    function submit(uint256 blockHeight, bytes calldata blockHeaders) public {
+    function submit(uint256 blockHeight, bytes calldata blockHeaders) public onlyOwner {
         uint256 numHeaders = blockHeaders.length / 80;
         require(numHeaders * 80 == blockHeaders.length, "wrong header length");
         require(numHeaders > 0, "must submit at least one block");
