@@ -1,4 +1,4 @@
-import { BigNumber, Contract, ethers, Wallet } from "ethers";
+import { Contract, ethers, Wallet } from "ethers";
 import {
   getBlockCount,
   getBlockHash,
@@ -9,22 +9,17 @@ import {
 import { Config } from "./config";
 import btcMirrorJson = require("../../contracts/out/BtcMirror.sol/BtcMirror.json");
 
-// We do NOT import '@eth-optimism/contracts'. that package has terrible
-// dependency hygiene. you end up trying to node-gyp compile libusb, wtf.
-// all we need is a plain ABI json and a contract address:
-import optGPOAbi = require("../abi/OptimismGasPriceOracle.json");
-const optGPOAddr = "0x420000000000000000000000000000000000000F";
 
 export class BtcSubmitter {
   private readonly config: Config;
-  private readonly provider: ethers.providers.JsonRpcProvider;
+  private readonly provider: ethers.JsonRpcProvider;
   private readonly contract: Contract;
   private readonly rpc: BtcRpcClient;
   private isRunning = false;
 
   constructor(config: Config) {
     this.config = config;
-    this.provider = new ethers.providers.JsonRpcProvider(config.rpcUrl);
+    this.provider = new ethers.JsonRpcProvider(config.rpcUrl);
     this.contract = new Contract(
       config.contractAddr,
       btcMirrorJson.abi,
@@ -85,11 +80,9 @@ export class BtcSubmitter {
     console.log(`Loaded BTC blocks ${fromHeight}-${targetHeight}`);
 
     // Submit transaction
-    const gasLimit = 100000 + 30000 * headers.length;
-    const tx = await this.contract.functions.submit(
+    const tx = await this.contract.submit(
       fromHeight,
       Buffer.from(headers.join(""), "hex"),
-      { gasLimit }
     );
 
     console.log(`Submitted tx ${tx.hash}, waiting for confirmation...`);
@@ -98,8 +91,8 @@ export class BtcSubmitter {
   }
 
   private async getCurrentMirrorHeight(): Promise<number> {
-    const latestHeightRes = await this.contract.functions["getLatestBlockHeight"]();
-    const mirrorLatestHeight = (latestHeightRes[0] as BigNumber).toNumber();
+    const latestHeightRes = await this.contract.getLatestBlockHeight();
+    const mirrorLatestHeight = Number(latestHeightRes);
     console.log("got BtcMirror latest block height: " + mirrorLatestHeight);
     return mirrorLatestHeight;
   }
@@ -135,10 +128,9 @@ export class BtcSubmitter {
     mirrorLatestHeight: number,
     hashes: string[]
   ) {
-    const maxReorg = 20;
+    const maxReorg = 100;
     for (let height = mirrorLatestHeight; mirrorLatestHeight - maxReorg; height--) {
-      const mirrorResult = await this.contract.functions["getBlockHash"](height);
-      const mirrorHash = (mirrorResult[0] as string).replace("0x", "");
+      const mirrorHash = (await this.contract.getBlockHash(height)).replace("0x", "");
       const btcHash = await getBlockHash(this.rpc, height);
       console.log(`height ${height} btc ${btcHash} btcmirror ${mirrorHash}`);
       if (btcHash === mirrorHash) {
@@ -161,13 +153,6 @@ export class BtcSubmitter {
   }
 }
 
-async function getOptimismBasefee(ethProvider: ethers.providers.Provider) {
-  const gasPriceOracle = new Contract(optGPOAddr, optGPOAbi, ethProvider);
-  const l1BaseFeeRes = await gasPriceOracle.functions["l1BaseFee"]();
-  const l1BaseFeeGwei = Math.round(l1BaseFeeRes[0] / 1e9);
-  console.log(`optimism L1 basefee: ${l1BaseFeeGwei} gwei`);
-  return l1BaseFeeGwei;
-}
 
 function sleep(time: number) {
   return new Promise((resolve) => setTimeout(resolve, time));
