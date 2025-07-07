@@ -3,6 +3,7 @@ pragma solidity ^0.8.13;
 
 import "./Endian.sol";
 import "./interfaces/IBtcMirror.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 //
 //                                        #
@@ -32,7 +33,7 @@ import "./interfaces/IBtcMirror.sol";
 // Bitcoin hash power is honest and at least one person is running the submitter
 // script, the BtcMirror contract always reports the current canonical Bitcoin
 // chain.
-contract BtcMirror is IBtcMirror {
+contract BtcMirror is IBtcMirror, Ownable {
     /**
      * @notice Emitted whenever the contract accepts a new heaviest chain.
      */
@@ -42,11 +43,7 @@ contract BtcMirror is IBtcMirror {
      * @notice Emitted only after a difficulty retarget, when the contract
      *         accepts a new heaviest chain with updated difficulty.
      */
-    event NewTotalDifficultySinceRetarget(
-        uint256 blockHeight,
-        uint256 totalDifficulty,
-        uint32 newDifficultyBits
-    );
+    event NewTotalDifficultySinceRetarget(uint256 blockHeight, uint256 totalDifficulty, uint32 newDifficultyBits);
 
     /**
      * @notice Emitted when we reorg out a portion of the chain.
@@ -59,27 +56,35 @@ contract BtcMirror is IBtcMirror {
 
     mapping(uint256 => bytes32) private blockHeightToHash;
 
-    /** @notice Difficulty targets in each retargeting period. */
+    /**
+     * @notice Difficulty targets in each retargeting period.
+     */
     mapping(uint256 => uint256) public periodToTarget;
 
-    /** @notice The longest reorg that this BtcMirror instance has observed. */
+    /**
+     * @notice The longest reorg that this BtcMirror instance has observed.
+     */
     uint256 public longestReorg;
 
-    /** @notice Whether we're tracking testnet or mainnet Bitcoin. */
+    /**
+     * @notice Whether we're tracking testnet or mainnet Bitcoin.
+     */
     bool public immutable isTestnet;
 
-    /** @notice Tracks Bitcoin starting from a given block. The isTestnet
+    /**
+     * @notice Tracks Bitcoin starting from a given block. The isTestnet
      *          argument is necessary because the Bitcoin testnet does not
      *          respect the difficulty rules, so we disable block difficulty
      *          checks in order to track it.
      */
     constructor(
+        address _owner,
         uint256 _blockHeight,
         bytes32 _blockHash,
         uint256 _blockTime,
         uint256 _expectedTarget,
         bool _isTestnet
-    ) {
+    ) Ownable(_owner) {
         blockHeightToHash[_blockHeight] = _blockHash;
         latestBlockHeight = _blockHeight;
         latestBlockTime = _blockTime;
@@ -111,8 +116,9 @@ contract BtcMirror is IBtcMirror {
     /**
      * Submits a new Bitcoin chain segment. Must be heavier (not necessarily
      * longer) than the chain rooted at getBlockHash(getLatestBlockHeight()).
+     * Only the owner can call this function.
      */
-    function submit(uint256 blockHeight, bytes calldata blockHeaders) public {
+    function submit(uint256 blockHeight, bytes calldata blockHeaders) public onlyOwner {
         uint256 numHeaders = blockHeaders.length / 80;
         require(numHeaders * 80 == blockHeaders.length, "wrong header length");
         require(numHeaders > 0, "must submit at least one block");
@@ -153,9 +159,7 @@ contract BtcMirror is IBtcMirror {
             // the submitted chain segment crosses into a new difficulty
             // period. this is happens once every ~2 weeks. check total work
             bytes calldata lastHeader = blockHeaders[80 * (numHeaders - 1):];
-            uint32 newDifficultyBits = Endian.reverse32(
-                uint32(bytes4(lastHeader[72:76]))
-            );
+            uint32 newDifficultyBits = Endian.reverse32(uint32(bytes4(lastHeader[72:76])));
 
             uint256 newWork = getWorkInPeriod(newPeriod, newHeight);
             require(newWork > oldWork, "insufficient total difficulty");
@@ -166,11 +170,7 @@ contract BtcMirror is IBtcMirror {
                 blockHeightToHash[i] = 0;
             }
 
-            emit NewTotalDifficultySinceRetarget(
-                newHeight,
-                newWork,
-                newDifficultyBits
-            );
+            emit NewTotalDifficultySinceRetarget(newHeight, newWork, newDifficultyBits);
         } else {
             // here we know what newPeriod == oldPeriod == parentPeriod
             // with identical per-block difficulty. just keep the longest chain.
@@ -193,13 +193,9 @@ contract BtcMirror is IBtcMirror {
         }
     }
 
-    function getWorkInPeriod(uint256 period, uint256 height)
-        private
-        view
-        returns (uint256)
-    {
+    function getWorkInPeriod(uint256 period, uint256 height) private view returns (uint256) {
         uint256 target = periodToTarget[period];
-        uint256 workPerBlock = (2**256 - 1) / target;
+        uint256 workPerBlock = (2 ** 256 - 1) / target;
 
         uint256 numBlocks = height - (period * 2016) + 1;
         assert(numBlocks >= 1 && numBlocks <= 2016);
@@ -207,15 +203,10 @@ contract BtcMirror is IBtcMirror {
         return numBlocks * workPerBlock;
     }
 
-    function submitBlock(uint256 blockHeight, bytes calldata blockHeader)
-        private
-        returns (uint256 numReorged)
-    {
+    function submitBlock(uint256 blockHeight, bytes calldata blockHeader) private returns (uint256 numReorged) {
         // compute the block hash
         assert(blockHeader.length == 80);
-        uint256 blockHashNum = Endian.reverse256(
-            uint256(sha256(abi.encode(sha256(blockHeader))))
-        );
+        uint256 blockHashNum = Endian.reverse256(uint256(sha256(abi.encode(sha256(blockHeader)))));
 
         // optimistically save the block hash
         // we'll revert if the header turns out to be invalid
@@ -229,9 +220,7 @@ contract BtcMirror is IBtcMirror {
         blockHeightToHash[blockHeight] = newHash;
 
         // verify previous hash
-        bytes32 prevHash = bytes32(
-            Endian.reverse256(uint256(bytes32(blockHeader[4:36])))
-        );
+        bytes32 prevHash = bytes32(Endian.reverse256(uint256(bytes32(blockHeader[4:36]))));
         require(prevHash == blockHeightToHash[blockHeight - 1], "bad parent");
         require(prevHash != bytes32(0), "parent block not yet submitted");
 

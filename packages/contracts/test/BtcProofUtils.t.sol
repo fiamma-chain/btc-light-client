@@ -11,19 +11,15 @@ contract BtcProofUtilsTest is DSTest {
     // correct header for bitcoin block #717695
     // all bitcoin header values are little-endian:
     bytes constant bVer = hex"04002020";
-    bytes constant bParent =
-        hex"edae5e1bd8a0e007e529fe33d099ebb7a82a06d6d63d0b000000000000000000";
-    bytes constant bTxRoot =
-        hex"f8aec519bcd878c9713dc8153a72fd62e3667c5ade70d8d0415584b8528d79ca";
+    bytes constant bParent = hex"edae5e1bd8a0e007e529fe33d099ebb7a82a06d6d63d0b000000000000000000";
+    bytes constant bTxRoot = hex"f8aec519bcd878c9713dc8153a72fd62e3667c5ade70d8d0415584b8528d79ca";
     bytes constant bTime = hex"0b40d961";
     bytes constant bBits = hex"ab980b17";
     bytes constant bNonce = hex"3dcc4d5a";
 
-    bytes headerGood =
-        bytes.concat(bVer, bParent, bTxRoot, bTime, bBits, bNonce);
+    bytes headerGood = bytes.concat(bVer, bParent, bTxRoot, bTime, bBits, bNonce);
 
-    bytes32 blockHash717695 =
-        0x00000000000000000000135a8473d7d3a3b091c928246c65ce2a396dd2a5ca9a;
+    bytes32 blockHash717695 = 0x00000000000000000000135a8473d7d3a3b091c928246c65ce2a396dd2a5ca9a;
 
     // correct header for bitcoin block #717696
     // in order, all little-endian:
@@ -34,26 +30,17 @@ contract BtcProofUtilsTest is DSTest {
     // - difficulty bits
     // - nonce
     bytes constant header717696 = (
-        hex"00004020"
-        hex"9acaa5d26d392ace656c2428c991b0a3d3d773845a1300000000000000000000"
-        hex"aa8e225b1f3ea6c4b7afd5aa1cecf691a8beaa7fa1e579ce240e4a62b5ac8ecc"
-        hex"2141d961"
-        hex"8b8c0b17"
-        hex"0d5c05bb"
+        hex"00004020" hex"9acaa5d26d392ace656c2428c991b0a3d3d773845a1300000000000000000000"
+        hex"aa8e225b1f3ea6c4b7afd5aa1cecf691a8beaa7fa1e579ce240e4a62b5ac8ecc" hex"2141d961" hex"8b8c0b17" hex"0d5c05bb"
     );
 
     // header for bitcoin block #736000
     bytes constant header736000 = (
-        hex"04000020"
-        hex"d8280f9ce6eeebd2e117f39e1af27cb17b23c5eae6e703000000000000000000"
-        hex"31b669b35884e22c31b286ed8949007609db6cb50afe8b6e6e649e62cc24e19c"
-        hex"a5657c62"
-        hex"ba010917"
-        hex"36d09865"
+        hex"04000020" hex"d8280f9ce6eeebd2e117f39e1af27cb17b23c5eae6e703000000000000000000"
+        hex"31b669b35884e22c31b286ed8949007609db6cb50afe8b6e6e649e62cc24e19c" hex"a5657c62" hex"ba010917" hex"36d09865"
     );
 
-    bytes32 blockHash736000 =
-        hex"00000000000000000002d52d9816a419b45f1f0efe9a9df4f7b64161e508323d";
+    bytes32 blockHash736000 = hex"00000000000000000002d52d9816a419b45f1f0efe9a9df4f7b64161e508323d";
 
     // a Bitcoin P2SH (pay to script hash) transaction.
     // in order, all little-endian:
@@ -89,21 +76,10 @@ contract BtcProofUtilsTest is DSTest {
     // the same transaction, excluding flags and witnesses
     // the txid is a hash of this serialization
     bytes constant tx736 = (
-        hex"02000000"
-        hex"01"
-        hex"bb185dfa5b5c7682f4b2537fe2dcd00ce4f28de42eb4213c68fe57aaa264268b"
-        hex"01000000"
-        hex"17"
-        hex"16001407bf360a5fc365d23da4889952bcb59121088ee1"
-        hex"feffffff"
-        hex"02"
-        hex"8085800100000000"
-        hex"17"
-        hex"a914ae2f3d4b06579b62574d6178c10c882b9150374087"
-        hex"1c20590500000000"
-        hex"17"
-        hex"a91415ecf89e95eb07fbc351b3f7f4c54406f7ee5c1087"
-        hex"00000000"
+        hex"02000000" hex"01" hex"bb185dfa5b5c7682f4b2537fe2dcd00ce4f28de42eb4213c68fe57aaa264268b" hex"01000000"
+        hex"17" hex"16001407bf360a5fc365d23da4889952bcb59121088ee1" hex"feffffff" hex"02" hex"8085800100000000" hex"17"
+        hex"a914ae2f3d4b06579b62574d6178c10c882b9150374087" hex"1c20590500000000" hex"17"
+        hex"a91415ecf89e95eb07fbc351b3f7f4c54406f7ee5c1087" hex"00000000"
     );
 
     // merkle proof that transaction above is in block 736000
@@ -160,10 +136,7 @@ contract BtcProofUtilsTest is DSTest {
         bytes32 txId = 0x3667d5beede7d89e41b0ec456f99c93d6cc5e5caff4c4a5f993caea477b4b9b9;
         uint256 txIndex = 1;
         bytes32 expectedRoot = 0x31b669b35884e22c31b286ed8949007609db6cb50afe8b6e6e649e62cc24e19c;
-        assertEq(
-            BtcProofUtils.getTxMerkleRoot(txId, txIndex, txProof736),
-            expectedRoot
-        );
+        assertEq(BtcProofUtils.getTxMerkleRoot(txId, txIndex, txProof736), expectedRoot);
     }
 
     // 2. verify that we can get hash a raw tx to get the txid (merkle leaf)
@@ -195,11 +168,11 @@ contract BtcProofUtilsTest is DSTest {
         assertEq(newOffset, 3);
 
         (val, newOffset) = BtcProofUtils.readVarInt(buf2to16, 0);
-        assertEq(val, 2**16);
+        assertEq(val, 2 ** 16);
         assertEq(newOffset, 5);
 
         (val, newOffset) = BtcProofUtils.readVarInt(buf2to32, 0);
-        assertEq(val, 2**32);
+        assertEq(val, 2 ** 32);
         assertEq(newOffset, 9);
     }
 
@@ -211,10 +184,7 @@ contract BtcProofUtilsTest is DSTest {
         assertEq(t.version, 2); // BIP68
 
         assertEq(t.inputs.length, 1);
-        assertEq(
-            t.inputs[0].prevTxID,
-            0x8b2664a2aa57fe683c21b42ee48df2e40cd0dce27f53b2f482765c5bfa5d18bb
-        );
+        assertEq(t.inputs[0].prevTxID, 0x8b2664a2aa57fe683c21b42ee48df2e40cd0dce27f53b2f482765c5bfa5d18bb);
         assertEq(t.inputs[0].prevTxIndex, 1);
         assertEq(t.inputs[0].scriptLen, 23);
         assertEq(t.inputs[0].seqNo, 4294967294);
@@ -362,15 +332,7 @@ contract BtcProofUtilsTest is DSTest {
         bytes32 opReturnData
     ) public pure {
         BtcProofUtils.validatePayment(
-            blockHash,
-            txProof,
-            txOutIx,
-            destScriptHash,
-            scriptType,
-            sats,
-            checkOpReturn,
-            opReturnOutIx,
-            opReturnData
+            blockHash, txProof, txOutIx, destScriptHash, scriptType, sats, checkOpReturn, opReturnOutIx, opReturnData
         );
     }
 }

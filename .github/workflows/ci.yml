@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+env:
+  FOUNDRY_PROFILE: default
+
+jobs:
+  ci:
+    name: CI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Install dependencies
+        run: cd packages/contracts && forge install
+
+      - name: Build contracts
+        run: cd packages/contracts && forge build
+
+      - name: Run tests
+        run: |
+          export FOUNDRY_UPGRADES_UNSAFE_SKIP=true
+          cd packages/contracts && forge test -vv
+
+      - name: Check formatting
+        run: cd packages/contracts && forge fmt --check 

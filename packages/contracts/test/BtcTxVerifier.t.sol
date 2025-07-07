@@ -12,16 +12,13 @@ contract BtcTxVerifierTest is DSTest {
     // correct header for bitcoin block #717695
     // all bitcoin header values are little-endian:
     bytes constant b717695 = (
-        hex"04002020"
-        hex"edae5e1bd8a0e007e529fe33d099ebb7a82a06d6d63d0b000000000000000000"
-        hex"f8aec519bcd878c9713dc8153a72fd62e3667c5ade70d8d0415584b8528d79ca"
-        hex"0b40d961"
-        hex"ab980b17"
-        hex"3dcc4d5a"
+        hex"04002020" hex"edae5e1bd8a0e007e529fe33d099ebb7a82a06d6d63d0b000000000000000000"
+        hex"f8aec519bcd878c9713dc8153a72fd62e3667c5ade70d8d0415584b8528d79ca" hex"0b40d961" hex"ab980b17" hex"3dcc4d5a"
     );
 
     function testVerifyTx() public {
         BtcMirror mirror = new BtcMirror(
+            address(this),
             736000, // start at block #736000
             0x00000000000000000002d52d9816a419b45f1f0efe9a9df4f7b64161e508323d,
             0,
@@ -34,11 +31,8 @@ contract BtcTxVerifierTest is DSTest {
 
         // validate payment 736000 #1
         bytes memory header736000 = (
-            hex"04000020"
-            hex"d8280f9ce6eeebd2e117f39e1af27cb17b23c5eae6e703000000000000000000"
-            hex"31b669b35884e22c31b286ed8949007609db6cb50afe8b6e6e649e62cc24e19c"
-            hex"a5657c62"
-            hex"ba010917"
+            hex"04000020" hex"d8280f9ce6eeebd2e117f39e1af27cb17b23c5eae6e703000000000000000000"
+            hex"31b669b35884e22c31b286ed8949007609db6cb50afe8b6e6e649e62cc24e19c" hex"a5657c62" hex"ba010917"
             hex"36d09865"
         );
         bytes memory txProof736 = (
@@ -57,31 +51,14 @@ contract BtcTxVerifierTest is DSTest {
         );
         bytes32 txId736 = 0x3667d5beede7d89e41b0ec456f99c93d6cc5e5caff4c4a5f993caea477b4b9b9;
         bytes memory tx736 = (
-            hex"02000000"
-            hex"01"
-            hex"bb185dfa5b5c7682f4b2537fe2dcd00ce4f28de42eb4213c68fe57aaa264268b"
-            hex"01000000"
-            hex"17"
-            hex"16001407bf360a5fc365d23da4889952bcb59121088ee1"
-            hex"feffffff"
-            hex"02"
-            hex"8085800100000000"
-            hex"17"
-            hex"a914ae2f3d4b06579b62574d6178c10c882b9150374087"
-            hex"1c20590500000000"
-            hex"17"
-            hex"a91415ecf89e95eb07fbc351b3f7f4c54406f7ee5c1087"
-            hex"00000000"
+            hex"02000000" hex"01" hex"bb185dfa5b5c7682f4b2537fe2dcd00ce4f28de42eb4213c68fe57aaa264268b" hex"01000000"
+            hex"17" hex"16001407bf360a5fc365d23da4889952bcb59121088ee1" hex"feffffff" hex"02" hex"8085800100000000"
+            hex"17" hex"a914ae2f3d4b06579b62574d6178c10c882b9150374087" hex"1c20590500000000" hex"17"
+            hex"a91415ecf89e95eb07fbc351b3f7f4c54406f7ee5c1087" hex"00000000"
         );
         bytes20 destSH = hex"ae2f3d4b06579b62574d6178c10c882b91503740";
 
-        BtcTxProof memory txP = BtcTxProof(
-            header736000,
-            txId736,
-            1,
-            txProof736,
-            tx736
-        );
+        BtcTxProof memory txP = BtcTxProof(header736000, txId736, 1, txProof736, tx736);
 
         assertTrue(verif.verifyPayment(1, 736000, txP, 0, destSH, BitcoinScriptType.P2SH, 25200000, false, 0, 0));
 
@@ -100,6 +77,7 @@ contract BtcTxVerifierTest is DSTest {
 
     function testVerifyP2WSHTx() public {
         BtcMirror mirror = new BtcMirror(
+            address(this),
             258185, // start at block #736000
             0x0000000bb2bfb06e7269347c26ae182fa33b3d9429089bf02857cced3ee0c2e6,
             0,
@@ -112,13 +90,10 @@ contract BtcTxVerifierTest is DSTest {
 
         // validate payment 258185 #1
         bytes memory header258185 = (
-        hex"00000020"
-        hex"7fcd2a7dfd264b8aa41f7e8ae4566e394bb81b55ac53cf3cda4874bd05000000"
-        hex"4863e54e0b27e95d2fa01bc88e3d8b5eb500a82b66211a99ff4a52e7c47efe95"
-        hex"7c505f68"
-        hex"0946151d"
-        hex"1a8fa608"
-    );
+            hex"00000020" hex"7fcd2a7dfd264b8aa41f7e8ae4566e394bb81b55ac53cf3cda4874bd05000000"
+            hex"4863e54e0b27e95d2fa01bc88e3d8b5eb500a82b66211a99ff4a52e7c47efe95" hex"7c505f68" hex"0946151d"
+            hex"1a8fa608"
+        );
         bytes memory txProof258185 = (
             hex"ed6263be5e9cc87c317111bfeef73994eefe5009e986a257f9c56cc37a54f69c"
             hex"4cf8b7a54b774afe1f07f28b7628b86b9733ad0f251fb99ab508a1be69542421"
@@ -133,16 +108,11 @@ contract BtcTxVerifierTest is DSTest {
         );
         bytes32 txId258185 = 0x717169ae85f87f1ace85468a490f15c8c44a92626b530d304d3343e84bc02289;
         // legacy transaction without witness data
-        bytes memory tx258185 = hex"0200000001a1d5368e173544f905caac1180f994befc12d1e563d7dd04fdb8a8a70b5f35080400000000ffffffff05a08601000000000022002028ef96126ca176dbe4891cd581b697cb05d4ccbb73d78e8ddc6c376aae30cf5f4a0100000000000022512052d19a46c1a8cd90001a816420448b612d9c13bdb50d02d716d411deb94dc9304a010000000000002251205052522694bf08177416fe87545369819499d8481c8158c4f7e6420a9b6654944a01000000000000225120143f25ece73eae253a4e359b3bcb69e0b87e9d6abb1b6abb6bb5821d68eff63343dfe52500000000225120b3fb9347b334c4fce53b7920bc0e1e18b17d2fcd849b743dc8b7243b238e303000000000";
+        bytes memory tx258185 =
+            hex"0200000001a1d5368e173544f905caac1180f994befc12d1e563d7dd04fdb8a8a70b5f35080400000000ffffffff05a08601000000000022002028ef96126ca176dbe4891cd581b697cb05d4ccbb73d78e8ddc6c376aae30cf5f4a0100000000000022512052d19a46c1a8cd90001a816420448b612d9c13bdb50d02d716d411deb94dc9304a010000000000002251205052522694bf08177416fe87545369819499d8481c8158c4f7e6420a9b6654944a01000000000000225120143f25ece73eae253a4e359b3bcb69e0b87e9d6abb1b6abb6bb5821d68eff63343dfe52500000000225120b3fb9347b334c4fce53b7920bc0e1e18b17d2fcd849b743dc8b7243b238e303000000000";
         bytes32 destSH = hex"28ef96126ca176dbe4891cd581b697cb05d4ccbb73d78e8ddc6c376aae30cf5f";
 
-        BtcTxProof memory txP = BtcTxProof(
-            header258185,
-            txId258185,
-            228,
-            txProof258185,
-            tx258185
-        );
+        BtcTxProof memory txP = BtcTxProof(header258185, txId258185, 228, txProof258185, tx258185);
 
         assertTrue(verif.verifyPayment(1, 258185, txP, 0, destSH, BitcoinScriptType.P2WSH, 100000, false, 0, 0));
 
@@ -161,6 +131,7 @@ contract BtcTxVerifierTest is DSTest {
 
     function testVerifyP2TRTx2() public {
         BtcMirror mirror = new BtcMirror(
+            address(this),
             258691, // start at block #258691
             0x0000000407b2b6cc1ceefa2e1ac83c5b7e8a9b41306338202de23e77a7d8839a,
             0,
@@ -219,6 +190,7 @@ contract BtcTxVerifierTest is DSTest {
 
     function testVerifyP2TRTx() public {
         BtcMirror mirror = new BtcMirror(
+            address(this),
             251954, // start at block #251954
             0x00000008ab60e9910037c17a403348eddb4577e556bc0c336b7e0f02c7c8f44b,
             0,
@@ -231,11 +203,8 @@ contract BtcTxVerifierTest is DSTest {
 
         // validate payment 251954 #1
         bytes memory header251954 = (
-            hex"00000020"
-            hex"69f1a0e5a60772aa04e7d78331216e7adf293939fda463520ac2a2fc06000000"
-            hex"d2594ddc547b58c21f86f608ac0f9dfab10da69ac2ffed0e734897eb61502312"
-            hex"0c572368"
-            hex"b09a0e1d"
+            hex"00000020" hex"69f1a0e5a60772aa04e7d78331216e7adf293939fda463520ac2a2fc06000000"
+            hex"d2594ddc547b58c21f86f608ac0f9dfab10da69ac2ffed0e734897eb61502312" hex"0c572368" hex"b09a0e1d"
             hex"55a2f21a"
         );
         bytes memory txProof251954 = (
@@ -248,16 +217,11 @@ contract BtcTxVerifierTest is DSTest {
             hex"3389fe88688e15f0f37e3e03d1d5b4fabc9d5f83be250d1bb783bdcfd3a7b232"
         );
         bytes32 txId251954 = 0x516bec8e1539127d4d645651db92c34518de9c97c37d914bc24f8e6ec99ffb6c;
-        bytes memory tx251954 = hex"020000000127746ae8ab9fe560a680f7b35d443745aa50190976b1187afae0d1c694adedac0000000000fdffffff015139936f090000002251204875e52611f7c3233ce8633a79baea5bea760ce36b3f49308b655b92c101d10630d80300";
+        bytes memory tx251954 =
+            hex"020000000127746ae8ab9fe560a680f7b35d443745aa50190976b1187afae0d1c694adedac0000000000fdffffff015139936f090000002251204875e52611f7c3233ce8633a79baea5bea760ce36b3f49308b655b92c101d10630d80300";
         bytes32 destSH = hex"4875e52611f7c3233ce8633a79baea5bea760ce36b3f49308b655b92c101d106";
 
-        BtcTxProof memory txP = BtcTxProof(
-            header251954,
-            txId251954,
-            2,
-            txProof251954,
-            tx251954
-        );
+        BtcTxProof memory txP = BtcTxProof(header251954, txId251954, 2, txProof251954, tx251954);
 
         assertTrue(verif.verifyPayment(1, 251954, txP, 0, destSH, BitcoinScriptType.P2TR, 40526625105, false, 0, 0));
 
@@ -268,7 +232,9 @@ contract BtcTxVerifierTest is DSTest {
         assertTrue(!verif.verifyPayment(1, 251954, txP, 0, destSH, BitcoinScriptType.P2TR, 40526625106, false, 0, 0));
 
         vm.expectRevert("Script hash mismatch");
-        assertTrue(!verif.verifyPayment(1, 251954, txP, 0, bytes32(0x0), BitcoinScriptType.P2TR, 40526625106, false, 0, 0));
+        assertTrue(
+            !verif.verifyPayment(1, 251954, txP, 0, bytes32(0x0), BitcoinScriptType.P2TR, 40526625106, false, 0, 0)
+        );
 
         vm.expectRevert("Block hash mismatch");
         assertTrue(!verif.verifyPayment(1, 251952, txP, 0, destSH, BitcoinScriptType.P2TR, 40526625105, false, 0, 0));
