@@ -159,6 +159,64 @@ contract BtcTxVerifierTest is DSTest {
         assertTrue(!verif.verifyPayment(1, 258184, txP, 0, destSH, BitcoinScriptType.P2WSH, 100000, false, 0, 0));
     }
 
+    function testVerifyP2TRTx2() public {
+        BtcMirror mirror = new BtcMirror(
+            258691, // start at block #258691
+            0x0000000407b2b6cc1ceefa2e1ac83c5b7e8a9b41306338202de23e77a7d8839a,
+            0,
+            0x0,
+            true
+        );
+        assertEq(mirror.getLatestBlockHeight(), 258691);
+
+        BtcTxVerifier verif = new BtcTxVerifier(mirror);
+
+        // validate payment 258691 #1
+        bytes memory header258691 = (
+            hex"00000020"
+            hex"0d539094157c80001610c88394d068a5db07bec83baa6911f30739860f000000"
+            hex"69c065a7ac4200fac94ac15184ae5b7c4919a3c1aae9c999dd210bdaa4531212"
+            hex"c9066468"
+            hex"0946151d"
+            hex"fb2dc006"
+        );
+        bytes memory txProof258691 = (
+            hex"ec1878972884279ac2063c54b5d479870142a3bdcd12fb99ef5a4f9a8cab3fef"
+            hex"85864dbcd8eb5f0cc927c1a0f79a37170c57199f528d80b463e596d4c8d3ae33"
+            hex"846a8cbef442010cb03d5f29bda81b25868ae28b0440d8905f8aac2b07f5e0ba"
+            hex"4dd54d30dc4cf21be24751e4e7f5aaae5535950fd3774508055dc61a35c02afb" 
+            hex"a58f2f061dd516b236e2ea1f369677d1b23b6a0333b3ae0f08004479607ff27f"
+            hex"b391a4c0c70d32bda5cdc089206582ceac2f3a1a102d4ca09de1b30bc7c287c9"
+            hex"51784d5581edb1254ab4e0ab42a30099c58d290126767c0147b3d8ccc47ac255"
+            hex"d0a0a315449f54896b7870e7a0272c6d59a5a7cfba199bd79269c23bac7b2ba5"
+        );
+        bytes32 txId258691 = 0xf6c92ed993f3ad532cdb6b5fe4868a31fa2315339f76f4e4e6d84991a7b939fd;
+        bytes memory tx258691 = hex"02000000011c51c1b148deecc778e269568e021e3f48747ae01808d23f34303581a0c4e7440000000000ffffffff05ac7f0100000000002251203da465252bc8d0d8edf793168780b2e6574f182acd07d133b9e520368493cc53940200000000000022512052d19a46c1a8cd90001a816420448b612d9c13bdb50d02d716d411deb94dc930102700000000000022512076cd54985a86b449f1b177b39e1dbb6aa69802d37a186a4c44591fc9905c11bd102700000000000022512076cd54985a86b449f1b177b39e1dbb6aa69802d37a186a4c44591fc9905c11bd647800000000000022512024768243b3fbcbe285987d62f714277b7676f154d03240cdd3f6c934da966dc600000000";
+        bytes32 destSH = hex"3da465252bc8d0d8edf793168780b2e6574f182acd07d133b9e520368493cc53";
+
+        BtcTxProof memory txP = BtcTxProof(
+            header258691,
+            txId258691,
+            175,
+            txProof258691,
+            tx258691
+        );
+
+        assertTrue(verif.verifyPayment(1, 258691, txP, 0, destSH, BitcoinScriptType.P2TR, 98220, false, 0, 0));
+
+        vm.expectRevert("Not enough Bitcoin block confirmations");
+        assertTrue(!verif.verifyPayment(2, 258691, txP, 0, destSH, BitcoinScriptType.P2TR, 98220, false, 0, 0));
+
+        vm.expectRevert("Amount mismatch");
+        assertTrue(!verif.verifyPayment(1, 258691, txP, 0, destSH, BitcoinScriptType.P2TR, 98221, false, 0, 0));
+
+        vm.expectRevert("Script hash mismatch");
+        assertTrue(!verif.verifyPayment(1, 258691, txP, 0, bytes32(0x0), BitcoinScriptType.P2TR, 98220, false, 0, 0));
+
+        vm.expectRevert("Block hash mismatch");
+        assertTrue(!verif.verifyPayment(1, 258690, txP, 0, destSH, BitcoinScriptType.P2TR, 98220, false, 0, 0));
+    }
+
     function testVerifyP2TRTx() public {
         BtcMirror mirror = new BtcMirror(
             251954, // start at block #251954
