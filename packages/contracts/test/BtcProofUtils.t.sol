@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "forge-std/Test.sol";
+import {Test, console, Vm} from "forge-std/Test.sol";
 
 import "../src/BtcProofUtils.sol";
 
-contract BtcProofUtilsTest is DSTest {
-    Vm vm = Vm(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D);
-
+contract BtcProofUtilsTest is Test {
     // correct header for bitcoin block #717695
     // all bitcoin header values are little-endian:
     bytes constant bVer = hex"04002020";

@@ -31,8 +31,8 @@ import "./BtcProofUtils.sol";
 contract BtcTxVerifier is IBtcTxVerifier {
     IBtcMirror public immutable mirror;
 
-    constructor(IBtcMirror _mirror) {
-        mirror = _mirror;
+    constructor(address _mirror) {
+        mirror = IBtcMirror(_mirror);
     }
 
     function verifyPayment(

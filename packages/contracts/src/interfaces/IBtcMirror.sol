@@ -23,5 +23,18 @@ interface IBtcMirror {
     /**
      * @notice Submits a new Bitcoin chain segment (80-byte headers) s
      */
-    function submit(uint256 blockHeight, bytes calldata blockHeaders) external;
+    function submit_uncheck(uint256 blockHeight, bytes calldata blockHeaders, uint8 v, bytes32 r, bytes32 s) external;
+
+    /**
+     * @notice Challenges a previously submitted block by proving it's invalid, and submit the correct chain.
+     */
+    function challenge(
+        uint256 wrong_idx,
+        bytes calldata wrongBlockHeaders,
+        uint8 v,
+        bytes32 r,
+        bytes32 s,
+        uint256 blockHeight,
+        bytes calldata blockHeaders
+    ) external;
 }
