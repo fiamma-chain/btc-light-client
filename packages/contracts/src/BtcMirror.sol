@@ -4,6 +4,7 @@ pragma solidity ^0.8.13;
 import "./Endian.sol";
 import "./interfaces/IBtcMirror.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 //
 //                                        #
@@ -33,7 +34,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 // Bitcoin hash power is honest and at least one person is running the submitter
 // script, the BtcMirror contract always reports the current canonical Bitcoin
 // chain.
-contract BtcMirror is IBtcMirror, Ownable {
+contract BtcMirror is IBtcMirror, OwnableUpgradeable {
     /**
      * @notice Emitted whenever the contract accepts a new heaviest chain.
      */
@@ -62,29 +63,39 @@ contract BtcMirror is IBtcMirror, Ownable {
     mapping(uint256 => uint256) public periodToTarget;
 
     /**
-     * @notice The longest reorg that this BtcMirror instance has observed.
-     */
-    uint256 public longestReorg;
-
-    /**
      * @notice Whether we're tracking testnet or mainnet Bitcoin.
      */
-    bool public immutable isTestnet;
+    bool public isTestnet;
 
     /**
-     * @notice Tracks Bitcoin starting from a given block. The isTestnet
+     * @notice Constructor for the logic contract
+     * @dev Disables initializers to prevent direct initialization of the logic contract.
+     *      This is a security measure for upgradeable contracts deployed behind proxies.
+     *      The logic contract should only be initialized through the proxy.
+     * @custom:oz-upgrades-unsafe-allow constructor
+     */
+    constructor() {
+        _disableInitializers();
+    }
+
+    /**
+     * @notice Initializes the contract.
+     *          Tracks Bitcoin starting from a given block. The isTestnet
      *          argument is necessary because the Bitcoin testnet does not
      *          respect the difficulty rules, so we disable block difficulty
      *          checks in order to track it.
      */
-    constructor(
-        address _owner,
+    function initialize(
+        address _admin,
         uint256 _blockHeight,
         bytes32 _blockHash,
         uint256 _blockTime,
         uint256 _expectedTarget,
         bool _isTestnet
-    ) Ownable(_owner) {
+    ) external initializer {
+        require(_admin != address(0), "Invalid admin address");
+        __Ownable_init(_admin);
+
         blockHeightToHash[_blockHeight] = _blockHash;
         latestBlockHeight = _blockHeight;
         latestBlockTime = _blockTime;
@@ -112,13 +123,166 @@ contract BtcMirror is IBtcMirror, Ownable {
     function getLatestBlockTime() public view returns (uint256) {
         return latestBlockTime;
     }
+    /**
+     * @notice Allows the owner to submit a new Bitcoin chain segment.
+     *         This function is only callable by the owner.
+     * @dev This function is used to submit new blocks to the BtcMirror contract.
+     *      It verifies the block headers and updates the state accordingly.
+     */
+
+    function submit_uncheck(uint256 blockHeight, bytes calldata blockHeaders, uint8 v, bytes32 r, bytes32 s)
+        external
+        onlyOwner
+    {
+        bytes32 hash = keccak256(abi.encode(blockHeight, blockHeaders));
+        address expected_addr = ecrecover(hash, v, r, s);
+        require(expected_addr == msg.sender, "Invalid signature");
+
+        uint256 numHeaders = blockHeaders.length / 80;
+        require(numHeaders * 80 == blockHeaders.length, "wrong header length");
+        require(numHeaders > 0, "must submit at least one block");
+
+        uint256 newHeight = blockHeight + numHeaders - 1;
+        for (uint256 i = 0; i < numHeaders; i++) {
+            bytes calldata blockHeader = blockHeaders[80 * i:80 * (i + 1)];
+            uint256 blockNum = blockHeight + i;
+            uint256 blockHashNum = Endian.reverse256(uint256(sha256(abi.encode(sha256(blockHeader)))));
+            blockHeightToHash[blockNum] = bytes32(blockHashNum);
+
+            if (blockNum % 2016 == 0) {
+                bytes32 bits = bytes32(blockHeader[72:76]);
+                uint256 target = getTarget(bits);
+                periodToTarget[blockNum / 2016] = target;
+            }
+        }
+
+        latestBlockHeight = newHeight;
+        latestBlockTime =
+            Endian.reverse32(uint32(bytes4(blockHeaders[blockHeaders.length - 12:blockHeaders.length - 8])));
+
+        bytes32 newTip = getBlockHash(newHeight);
+        emit NewTip(newHeight, latestBlockTime, newTip);
+    }
+
+    /**
+     * @notice Validates a Bitcoin block header
+     * @param header 80-byte block header data
+     * @param blockHeight block height
+     * @return true if the block header is valid, false otherwise
+     */
+    function validateHeader(bytes calldata header, uint256 blockHeight) public view returns (bool) {
+        require(header.length == 80, "wrong header length");
+        require(blockHeight > 0, "The genesis block cannot be validated");
+
+        // 1. Validate block hash calculation
+        uint256 blockHashNum = Endian.reverse256(uint256(sha256(abi.encode(sha256(header)))));
+
+        // 2. Validate previous block hash
+        bytes32 prevHash = bytes32(Endian.reverse256(uint256(bytes32(header[4:36]))));
+
+        // Check if previous block exists
+        if (blockHeightToHash[blockHeight - 1] == bytes32(0)) {
+            return false;
+        }
+
+        // Check if previous block hash matches
+        if (prevHash != blockHeightToHash[blockHeight - 1]) {
+            return false;
+        }
+
+        // 3. Validate proof of work and difficulty target
+        bytes32 bits = bytes32(header[72:76]);
+        uint256 target = getTarget(bits);
+
+        // 4. Validate difficulty target
+        uint256 period = blockHeight / 2016;
+        if (blockHeight % 2016 == 0) {
+            // For difficulty adjustment blocks, validate the adjustment is legal
+            uint256 lastTarget = periodToTarget[period - 1];
+            if (!isTestnet && target >> 2 >= lastTarget) {
+                // Difficulty decreased by more than 75%
+                return false;
+            }
+        } else if (!isTestnet && target != periodToTarget[period]) {
+            // For non-adjustment blocks, validate difficulty matches current period
+            return false;
+        }
+
+        // 5. Validate block hash meets difficulty requirement
+        if (blockHashNum >= target) {
+            return false;
+        }
+
+        // 6. Validate version number
+        uint32 version = Endian.reverse32(uint32(bytes4(header[0:4])));
+        if (version < 2) {
+            return false;
+        }
+
+        // 7. Validate Merkle Root
+        bytes32 merkleRoot = bytes32(Endian.reverse256(uint256(bytes32(header[36:68]))));
+        if (merkleRoot == bytes32(0)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * @notice Challenges a previously submitted block by proving it's invalid, and submit the correct chain.
+     * @dev This function allows anyone to challenge a block by providing evidence that it violates Bitcoin consensus rules.
+     *      The challenger must provide:
+     *      1. The owner's signature to prevent spam
+     *      2. The invalid block headers
+     *      3. The index of the specific invalid block
+     *      4. A valid alternative chain
+     *      If the challenge is successful (i.e., the block is proven invalid), the alternative chain is accepted.
+     *
+     * @param wrong_idx Index of the invalid block in the wrongBlockHeaders array
+     * @param wrongBlockHeaders Array of block headers containing the invalid block
+     * @param v Recovery byte of the owner's signature
+     * @param r R component of the owner's signature
+     * @param s S component of the owner's signature
+     * @param blockHeight Starting height of the alternative chain
+     * @param blockHeaders Alternative valid chain to replace the invalid one
+     *
+     * @custom:security-note The owner's signature is required to prevent DoS attacks through excessive challenges
+     */
+    function challenge(
+        uint256 wrong_idx,
+        bytes calldata wrongBlockHeaders,
+        uint8 v,
+        bytes32 r,
+        bytes32 s,
+        uint256 blockHeight,
+        bytes calldata blockHeaders
+    ) external {
+        address owner = owner();
+        bytes32 hash = keccak256(abi.encode(blockHeight, wrongBlockHeaders));
+        address expected_addr = ecrecover(hash, v, r, s);
+        require(expected_addr == owner, "Challenger use wrong signature");
+        require(blockHeight > 0, "The genesis block cannot be challenged");
+
+        uint256 numWrongHeaders = wrongBlockHeaders.length / 80;
+        require(numWrongHeaders * 80 == wrongBlockHeaders.length, "wrong header length");
+        require(numWrongHeaders > 0, "must submit at least one block");
+
+        bytes calldata wrongHeader = wrongBlockHeaders[80 * wrong_idx:80 * (wrong_idx + 1)];
+        uint256 wrongBlockHeight = blockHeight + wrong_idx;
+
+        // Validate the challenged block header
+        bool isValid = validateHeader(wrongHeader, wrongBlockHeight);
+        require(!isValid, "The challenged block appears to be valid");
+
+        // submit the correct chain
+        submit(blockHeight, blockHeaders);
+    }
 
     /**
      * Submits a new Bitcoin chain segment. Must be heavier (not necessarily
      * longer) than the chain rooted at getBlockHash(getLatestBlockHeight()).
-     * Only the owner can call this function.
      */
-    function submit(uint256 blockHeight, bytes calldata blockHeaders) public onlyOwner {
+    function submit(uint256 blockHeight, bytes calldata blockHeaders) private {
         uint256 numHeaders = blockHeaders.length / 80;
         require(numHeaders * 80 == blockHeaders.length, "wrong header length");
         require(numHeaders > 0, "must submit at least one block");

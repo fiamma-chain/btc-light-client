@@ -1,14 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "forge-std/Test.sol";
+import {Test, Vm, console} from "forge-std/Test.sol";
+import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
+import {console2} from "forge-std/console2.sol";
 
 import "../src/BtcMirror.sol";
 
-contract BtcMirrorTest is DSTest {
-    Vm vm = Vm(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D);
-
-    address owner = address(0x1234567890123456789012345678901234567890);
+contract BtcMirrorTest is Test {
+    uint256 constant ownerPrivateKey = uint256(keccak256(abi.encodePacked("owner")));
+    address owner = vm.addr(ownerPrivateKey);
 
     // correct header for bitcoin block #717695
     // all bitcoin header values are little-endian:
@@ -39,11 +41,25 @@ contract BtcMirrorTest is DSTest {
 
     bytes headerGood = bytes.concat(bVer, bParent, bTxRoot, bTime, bBits, bNonce);
 
-    bytes headerWrongParentHash = bytes.concat(bVer, bTxRoot, bTxRoot, bTime, bBits, bNonce);
+    bytes headerWrongParentHash = bytes.concat(
+        hex"04002020", // version
+        hex"0000000000000000000000000000000000000000000000000000000000000000", // parent hash
+        hex"f8aec519bcd878c9713dc8153a72fd62e3667c5ade70d8d0415584b8528d79ca", // merkle root
+        hex"0b40d961", // timestamp
+        hex"ab980b17", // bits
+        hex"3dcc4d5a" // nonce
+    );
 
     bytes headerWrongLength = bytes.concat(bVer, bParent, bTxRoot, bTime, bBits, bNonce, hex"00");
 
-    bytes headerHashTooEasy = bytes.concat(bVer, bParent, bTxRoot, bTime, bBits, hex"41b360c0");
+    bytes headerHashTooEasy = bytes.concat(
+        hex"04002020", // version
+        hex"edae5e1bd8a0e007e529fe33d099ebb7a82a06d6d63d0b000000000000000000", // parent hash
+        hex"f8aec519bcd878c9713dc8153a72fd62e3667c5ade70d8d0415584b8528d79ca", // merkle root
+        hex"0b40d961", // timestamp
+        hex"ab980b17", // bits
+        hex"00000000" // nonce
+    );
 
     function testGetTarget() public {
         BtcMirror mirror = createBtcMirror();
@@ -54,36 +70,6 @@ contract BtcMirrorTest is DSTest {
         assertEq(mirror.getTarget(hex"cb04041b"), expectedTarget);
         expectedTarget = 0x000000000000000000096A200000000000000000000000000000000000000000;
         assertEq(mirror.getTarget(hex"206a0917"), expectedTarget);
-    }
-
-    function testOnlyOwnerCanSubmit() public {
-        BtcMirror mirror = createBtcMirror();
-        assertEq(mirror.getLatestBlockHeight(), 717694);
-
-        // Test that non-owner cannot submit
-        address nonOwner = address(0x9999999999999999999999999999999999999999);
-        vm.expectRevert();
-        vm.prank(nonOwner);
-        mirror.submit(717695, headerGood);
-
-        // Test that owner can submit
-        vm.prank(owner);
-        mirror.submit(717695, headerGood);
-        assertEq(mirror.getLatestBlockHeight(), 717695);
-    }
-
-    function testSubmitError() public {
-        BtcMirror mirror = createBtcMirror();
-        assertEq(mirror.getLatestBlockHeight(), 717694);
-        vm.expectRevert("bad parent");
-        vm.prank(owner);
-        mirror.submit(717695, headerWrongParentHash);
-        vm.expectRevert("wrong header length");
-        vm.prank(owner);
-        mirror.submit(717695, headerWrongLength);
-        vm.expectRevert("block hash above target");
-        vm.prank(owner);
-        mirror.submit(717695, headerHashTooEasy);
     }
 
     // function testSubmitErrorFuzz1(bytes calldata x) public {
@@ -102,56 +88,90 @@ contract BtcMirrorTest is DSTest {
     event NewTotalDifficultySinceRetarget(uint256 blockHeight, uint256 totalDifficulty, uint32 newDifficultyBits);
 
     function createBtcMirror() internal returns (BtcMirror mirror) {
-        vm.prank(owner);
-        mirror = new BtcMirror(
+        // Deploy implementation
+        BtcMirror mirrorImpl = new BtcMirror();
+
+        // Deploy ProxyAdmin
+        ProxyAdmin proxyAdmin = new ProxyAdmin(address(this));
+
+        // Prepare initialization data
+        bytes memory initData = abi.encodeWithSelector(
+            BtcMirror.initialize.selector,
             owner,
-            717694, // start at block #717694, two  blocks before retarget
+            717694, // start at block #717694, two blocks before retarget
             0x0000000000000000000b3dd6d6062aa8b7eb99d033fe29e507e0a0d81b5eaeed,
             1641627092,
             0x0000000000000000000B98AB0000000000000000000000000000000000000000,
-            false
+            true // use testnet mode
         );
+
+        // Deploy and initialize proxy
+        TransparentUpgradeableProxy proxy =
+            new TransparentUpgradeableProxy(address(mirrorImpl), address(proxyAdmin), initData);
+
+        mirror = BtcMirror(address(proxy));
+
+        // Set initial target for period 356
+        bytes memory initialHeader = bytes.concat(
+            hex"04002020", // version
+            hex"edae5e1bd8a0e007e529fe33d099ebb7a82a06d6d63d0b000000000000000000", // parent hash
+            hex"f8aec519bcd878c9713dc8153a72fd62e3667c5ade70d8d0415584b8528d79ca", // merkle root
+            hex"0b40d961", // timestamp
+            hex"ab980b17", // bits
+            hex"3dcc4d5a" // nonce
+        );
+        bytes32 hash = keccak256(abi.encode(uint256(717694), initialHeader));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, hash);
+        vm.prank(owner);
+        mirror.submit_uncheck(717694, initialHeader, v, r, s);
     }
 
-    function testSubmit() public {
+    function testChallenge() public {
         BtcMirror mirror = createBtcMirror();
         assertEq(mirror.getLatestBlockHeight(), 717694);
-        vm.expectEmit(true, true, true, true);
-        emit NewTip(717695, 1641627659, 0x00000000000000000000135a8473d7d3a3b091c928246c65ce2a396dd2a5ca9a);
-        vm.prank(owner);
-        mirror.submit(717695, headerGood);
-        assertEq(mirror.getLatestBlockHeight(), 717695);
-        assertEq(mirror.getLatestBlockTime(), 1641627659);
-        assertEq(mirror.getBlockHash(717695), 0x00000000000000000000135a8473d7d3a3b091c928246c65ce2a396dd2a5ca9a);
-    }
 
-    function testSubmitError2() public {
-        BtcMirror mirror = createBtcMirror();
+        bytes32 prevBlockHash = mirror.getBlockHash(717694);
+        console2.log("717694 prevBlockHash");
+        console2.logBytes32(prevBlockHash);
+
+        // First submit a valid block
+        bytes32 hash = keccak256(abi.encode(uint256(717695), headerGood));
+        (uint8 goodV, bytes32 goodR, bytes32 goodS) = vm.sign(ownerPrivateKey, hash);
         vm.prank(owner);
-        mirror.submit(717695, headerGood);
-        assertEq(mirror.getLatestBlockHeight(), 717695);
-        vm.expectRevert("must submit at least one block");
+        mirror.submit_uncheck(717695, headerGood, goodV, goodR, goodS);
+
+        // Test challenge genesis block
+        hash = keccak256(abi.encode(uint256(0), headerWrongParentHash));
+        (uint8 badV, bytes32 badR, bytes32 badS) = vm.sign(ownerPrivateKey, hash);
         vm.prank(owner);
-        mirror.submit(717696, hex"");
-        assertEq(mirror.getLatestBlockHeight(), 717695);
+        vm.expectRevert("The genesis block cannot be challenged");
+        mirror.challenge(0, headerWrongParentHash, badV, badR, badS, 0, headerGood);
+
+        // Test wrong signature
+        uint256 wrongPrivateKey = uint256(keccak256(abi.encodePacked("wrong")));
+        (uint8 wrongV, bytes32 wrongR, bytes32 wrongS) = vm.sign(wrongPrivateKey, hash);
+        vm.prank(owner);
+        vm.expectRevert("Challenger use wrong signature");
+        mirror.challenge(0, headerWrongParentHash, wrongV, wrongR, wrongS, 717695, headerGood);
     }
 
     function testRetarget() public {
         BtcMirror mirror = createBtcMirror();
+        assertEq(mirror.getLatestBlockHeight(), 717694);
+
+        // Submit first block
+        bytes32 hash = keccak256(abi.encode(uint256(717695), headerGood));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, hash);
         vm.prank(owner);
-        mirror.submit(717695, headerGood);
+        mirror.submit_uncheck(717695, headerGood, v, r, s);
         assertEq(mirror.getLatestBlockHeight(), 717695);
 
-        vm.expectEmit(true, true, true, true);
-        emit NewTotalDifficultySinceRetarget(
-            717696,
-            104678001670374021593451, // = (2^256 - 1) / (new target)
-            386632843
-        );
-        vm.expectEmit(true, true, true, true);
-        emit NewTip(717696, 1641627937, 0x0000000000000000000335dd327bde445d83f1ce40af2736a7c279045b9a55bf);
+        // Submit second block
+        hash = keccak256(abi.encode(uint256(717696), b717696));
+        (v, r, s) = vm.sign(ownerPrivateKey, hash);
         vm.prank(owner);
-        mirror.submit(717696, b717696);
+        mirror.submit_uncheck(717696, b717696, v, r, s);
+
         assertEq(mirror.getLatestBlockHeight(), 717696);
         assertEq(mirror.getLatestBlockTime(), 1641627937);
         assertEq(mirror.getBlockHash(717696), 0x0000000000000000000335dd327bde445d83f1ce40af2736a7c279045b9a55bf);
@@ -159,18 +179,94 @@ contract BtcMirrorTest is DSTest {
 
     function testRetargetLonger() public {
         BtcMirror mirror = createBtcMirror();
+        assertEq(mirror.getLatestBlockHeight(), 717694);
+
+        // Submit first block
+        bytes32 hash = keccak256(abi.encode(uint256(717695), headerGood));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, hash);
         vm.prank(owner);
-        mirror.submit(717695, headerGood);
+        mirror.submit_uncheck(717695, headerGood, v, r, s);
         assertEq(mirror.getLatestBlockHeight(), 717695);
 
-        vm.expectEmit(true, true, true, true);
-        emit NewTotalDifficultySinceRetarget(717697, 209356003340748043186902, 386632843);
-        vm.expectEmit(true, true, true, true);
-        emit NewTip(717697, 1641628146, 0x00000000000000000000794d6f4f6ee1c09e69a81469d7456e67be3d724223fb);
-        vm.recordLogs();
+        // Submit multiple blocks
+        bytes memory multipleHeaders = bytes.concat(b717696, b717697);
+        hash = keccak256(abi.encode(uint256(717696), multipleHeaders));
+        (v, r, s) = vm.sign(ownerPrivateKey, hash);
         vm.prank(owner);
-        mirror.submit(717695, bytes.concat(headerGood, b717696, b717697));
+        mirror.submit_uncheck(717696, multipleHeaders, v, r, s);
         assertEq(mirror.getLatestBlockHeight(), 717697);
-        assertEq(vm.getRecordedLogs().length, 2);
+    }
+
+    function testSubmitUncheck() public {
+        BtcMirror mirror = createBtcMirror();
+        assertEq(mirror.getLatestBlockHeight(), 717694);
+
+        // Prepare signature data
+        bytes32 hash = keccak256(abi.encode(uint256(717695), headerGood));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, hash);
+
+        // Test non-owner cannot call
+        address nonOwner = address(0x9999999999999999999999999999999999999999);
+        vm.prank(nonOwner);
+        vm.expectRevert(abi.encodeWithSignature("OwnableUnauthorizedAccount(address)", nonOwner));
+        mirror.submit_uncheck(717695, headerGood, v, r, s);
+
+        // Test invalid signature
+        vm.startPrank(owner);
+        vm.expectRevert("Invalid signature");
+        mirror.submit_uncheck(717695, headerGood, v, r, bytes32(0));
+
+        // Test successful submission
+        vm.expectEmit(true, true, true, true);
+        emit NewTip(717695, 1641627659, 0x00000000000000000000135a8473d7d3a3b091c928246c65ce2a396dd2a5ca9a);
+        mirror.submit_uncheck(717695, headerGood, v, r, s);
+
+        // Verify state updates
+        assertEq(mirror.getLatestBlockHeight(), 717695);
+        assertEq(mirror.getLatestBlockTime(), 1641627659);
+        assertEq(mirror.getBlockHash(717695), 0x00000000000000000000135a8473d7d3a3b091c928246c65ce2a396dd2a5ca9a);
+
+        // Test submitting multiple blocks
+        bytes memory twoHeaders = bytes.concat(headerGood, b717696);
+        hash = keccak256(abi.encode(uint256(717695), twoHeaders));
+        (v, r, s) = vm.sign(ownerPrivateKey, hash);
+
+        vm.expectEmit(true, true, true, true);
+        emit NewTip(717696, 1641627937, 0x0000000000000000000335dd327bde445d83f1ce40af2736a7c279045b9a55bf);
+        mirror.submit_uncheck(717695, twoHeaders, v, r, s);
+
+        // Verify state updates
+        assertEq(mirror.getLatestBlockHeight(), 717696);
+        assertEq(mirror.getLatestBlockTime(), 1641627937);
+        assertEq(mirror.getBlockHash(717696), 0x0000000000000000000335dd327bde445d83f1ce40af2736a7c279045b9a55bf);
+        vm.stopPrank();
+    }
+
+    function testSubmitUncheckError() public {
+        BtcMirror mirror = createBtcMirror();
+
+        // Prepare signature data with wrong private key
+        uint256 wrongPrivateKey = uint256(keccak256(abi.encodePacked("wrong")));
+
+        bytes32 hash = keccak256(abi.encode(uint256(717695), headerWrongLength));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(wrongPrivateKey, hash);
+
+        // Test invalid signature
+        vm.startPrank(owner);
+        vm.expectRevert("Invalid signature");
+        mirror.submit_uncheck(717695, headerWrongLength, v, r, s);
+
+        // Test invalid header length with correct signature
+        hash = keccak256(abi.encode(uint256(717695), headerWrongLength));
+        (v, r, s) = vm.sign(ownerPrivateKey, hash);
+        vm.expectRevert("wrong header length");
+        mirror.submit_uncheck(717695, headerWrongLength, v, r, s);
+
+        // Test empty header
+        hash = keccak256(abi.encode(uint256(717695), ""));
+        (v, r, s) = vm.sign(ownerPrivateKey, hash);
+        vm.expectRevert("must submit at least one block");
+        mirror.submit_uncheck(717695, "", v, r, s);
+        vm.stopPrank();
     }
 }

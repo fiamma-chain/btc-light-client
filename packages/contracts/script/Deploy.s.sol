@@ -2,6 +2,9 @@
 pragma solidity ^0.8.13;
 
 import "forge-std/Script.sol";
+import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
+import {Upgrades} from "@openzeppelin-foundry-upgrades/src/Upgrades.sol";
 
 import "../src/BtcMirror.sol";
 import "../src/BtcTxVerifier.sol";
@@ -12,34 +15,55 @@ contract DeployBtcMirror is Script {
      *         testnet Bitcoin.
      */
     function run(bool mainnet) external {
-        vm.startBroadcast();
+        uint256 btcMirrorAdminPrivateKey = vm.envUint("BTCMIRROR_ADMIN_PRIVATE_KEY");
+        address btcMirrorAdmin = vm.addr(btcMirrorAdminPrivateKey);
 
-        // Deploy BtcMirror
-        BtcMirror mirror;
+        vm.startBroadcast(btcMirrorAdminPrivateKey);
+
+        address btcMirrorProxyAddress;
         if (mainnet) {
-            // ...tracking Bitcoin mainnet, starting at block 739000
-            mirror = new BtcMirror(
-                address(this),
-                739000,
-                hex"00000000000000000001059a330a05e66e4fa2d1a5adcd56d1bfefc5c114195d",
-                1654182075,
-                0x96A200000000000000000000000000000000000000000,
-                false
+            btcMirrorProxyAddress = Upgrades.deployTransparentProxy(
+                "BtcMirror.sol",
+                btcMirrorAdmin,
+                abi.encodeCall(
+                    BtcMirror.initialize,
+                    (
+                        btcMirrorAdmin,
+                        904604, // start at block #904604
+                        0x0000000000000000000020a2c3f8c296d11a05c649ab5aa613513da2c2fd19fa,
+                        1751983312,
+                        0x268160000000000000000000000000000000000000000,
+                        false
+                    )
+                )
             );
         } else {
-            // ...tracking Bitcoin testnet, starting at block 2315360
-            mirror = new BtcMirror(
-                address(this),
-                2315360,
-                hex"0000000000000022201eee4f82ca053dfbc50d91e76e9cbff671699646d0982c",
-                1659901500,
-                0x000000000000003723C000000000000000000000000000000000000000000000,
-                true
+            btcMirrorProxyAddress = Upgrades.deployTransparentProxy(
+                "BtcMirror.sol",
+                btcMirrorAdmin,
+                abi.encodeCall(
+                    BtcMirror.initialize,
+                    (
+                        btcMirrorAdmin,
+                        89926,
+                        0x0000000000968ecf4d38c81a8421f1436dcae87651e0f0a96a4c479ae8dda791,
+                        1751888323,
+                        0x00000000ffff0000000000000000000000000000000000000000000000000000,
+                        true
+                    )
+                )
             );
         }
 
+        BtcMirror mirror = BtcMirror(btcMirrorProxyAddress);
+
         // Deploy the transaction verifier
-        new BtcTxVerifier(mirror);
+        BtcTxVerifier verifier = new BtcTxVerifier(btcMirrorProxyAddress);
+
+        console2.log("\nDeployment Summary:");
+        console2.log("------------------");
+        console2.log("BtcMirror Proxy:", btcMirrorProxyAddress);
+        console2.log("BtcTxVerifier:", address(verifier));
 
         vm.stopBroadcast();
     }

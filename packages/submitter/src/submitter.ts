@@ -1,4 +1,4 @@
-import { Contract, ethers, Wallet } from "ethers";
+import { ethers } from 'ethers';
 import {
   getBlockCount,
   getBlockHash,
@@ -9,21 +9,22 @@ import {
 import { Config } from "./config";
 import btcMirrorJson = require("../../contracts/out/BtcMirror.sol/BtcMirror.json");
 
-
 export class BtcSubmitter {
   private readonly config: Config;
   private readonly provider: ethers.JsonRpcProvider;
-  private readonly contract: Contract;
+  private readonly contract: ethers.Contract;
   private readonly rpc: BtcRpcClient;
+  private readonly wallet: ethers.Wallet;
   private isRunning = false;
 
   constructor(config: Config) {
     this.config = config;
     this.provider = new ethers.JsonRpcProvider(config.rpcUrl);
-    this.contract = new Contract(
+    this.wallet = new ethers.Wallet(config.privateKey, this.provider);
+    this.contract = new ethers.Contract(
       config.contractAddr,
       btcMirrorJson.abi,
-      new Wallet(config.privateKey, this.provider)
+      this.wallet
     );
     this.rpc = createBtcRpcClient(config);
   }
@@ -79,10 +80,28 @@ export class BtcSubmitter {
     const headers = await this.loadBlockHeaders(hashes);
     console.log(`Loaded BTC blocks ${fromHeight}-${targetHeight}`);
 
+    // Prepare block headers buffer
+    const blockHeaders = Buffer.from(headers.join(""), "hex");
+
+    // Create hash of blockHeight and blockHeaders
+    const abiCoder = ethers.AbiCoder.defaultAbiCoder();
+    const hash = ethers.keccak256(
+      abiCoder.encode(
+        ['uint256', 'bytes'],
+        [fromHeight, blockHeaders]
+      )
+    );
+
+    // Sign the hash directly without the Ethereum message prefix
+    const signature = await this.wallet.signingKey.sign(hash);
+
     // Submit transaction
-    const tx = await this.contract.submit(
+    const tx = await this.contract.submit_uncheck(
       fromHeight,
-      Buffer.from(headers.join(""), "hex"),
+      blockHeaders,
+      signature.v,
+      signature.r,
+      signature.s
     );
 
     console.log(`Submitted tx ${tx.hash}, waiting for confirmation...`);
@@ -152,7 +171,6 @@ export class BtcSubmitter {
     return await Promise.all(promises);
   }
 }
-
 
 function sleep(time: number) {
   return new Promise((resolve) => setTimeout(resolve, time));

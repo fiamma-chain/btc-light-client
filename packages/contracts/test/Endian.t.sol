@@ -5,7 +5,7 @@ import "forge-std/Test.sol";
 
 import "../src/Endian.sol";
 
-contract EndianTest is DSTest {
+contract EndianTest is Test {
     function test32() public {
         uint32 input = 0x12345678;
         assertEq(Endian.reverse32(input), 0x78563412);

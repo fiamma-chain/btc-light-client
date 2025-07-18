@@ -1,8 +1,8 @@
 # 📊 Gas Cost Analysis Report
 
-> **Generated on:** 6/30/2025  
-> **Configuration:** Gas Price = 5 gwei, ETH Price = $2500  
-> **Timestamp:** 2025-06-30T07:55:53.997Z
+> **Generated on:** 2025/7/18  
+> **Configuration:** Gas Price = 0.03 gwei, ETH Price = $2500  
+> **Timestamp:** 2025-07-18T02:14:02.458Z
 
 ---
 
@@ -12,50 +12,54 @@
 
 | Metric | Value |
 |--------|-------|
-| **Gas Used** | 1,456,824 |
-| **ETH Cost** | 0.007284 ETH |
-| **USD Cost** | $18.2103 |
-| **Contract Size** | 6967 bytes |
+| **Gas Used** | 1,335,270 |
+| **ETH Cost** | 0.00004 ETH |
+| **USD Cost** | $0.1001 |
+| **Contract Size** | 6025 bytes |
 
 ### ⚡ Function Call Costs (Per Transaction)
 
 | Function Name | Avg Gas | ETH Cost | USD Cost |
 |---------------|---------|----------|----------|
-| getBlockHash | 2,835 | 0.000014 ETH | $0.0354 |
-| getLatestBlockHeight | 2,475 | 0.000012 ETH | $0.0309 |
-| getLatestBlockTime | 2,455 | 0.000012 ETH | $0.0307 |
-| getTarget | 1,304 | 0.000007 ETH | $0.0163 |
-| submit | 68,544 | 0.000343 ETH | $0.8568 |
+| getBlockHash | 2,563 | 0 ETH | $0.0002 |
+| getLatestBlockHeight | 2,475 | 0 ETH | $0.0002 |
+| getLatestBlockTime | 2,278 | 0 ETH | $0.0002 |
+| getTarget | 508 | 0 ETH | $0.0000 |
+| initialize | 131,464 | 0.000004 ETH | $0.0099 |
+| submit | 40,797 | 0.000001 ETH | $0.0031 |
+| submit_uncheck | 19,849 | 0.000001 ETH | $0.0015 |
 
 ### 📊 Gas Usage Statistics
 
 | Function | Min Gas | Avg Gas | Median Gas | Max Gas | Test Calls |
 |----------|---------|---------|------------|---------|------------|
-| getBlockHash | 2,835 | 2,835 | 2,835 | 2,835 | 14 |
-| getLatestBlockHeight | 2,475 | 2,475 | 2,475 | 2,475 | 27 |
-| getLatestBlockTime | 2,455 | 2,455 | 2,455 | 2,455 | 2 |
-| getTarget | 1,304 | 1,304 | 1,304 | 1,304 | 3 |
-| submit | 22,928 | 68,544 | 71,617 | 138,803 | 10 |
+| getBlockHash | 2,563 | 2,563 | 2,563 | 2,563 | 20 |
+| getLatestBlockHeight | 2,475 | 2,475 | 2,475 | 2,475 | 38 |
+| getLatestBlockTime | 2,278 | 2,278 | 2,278 | 2,278 | 4 |
+| getTarget | 508 | 508 | 508 | 508 | 3 |
+| initialize | 99,318 | 131,464 | 139,118 | 139,118 | 13 |
+| submit | 739 | 40,797 | 44,245 | 98,371 | 11 |
+| submit_uncheck | 2,703 | 19,849 | 6,546 | 68,101 | 7 |
 
 ### 💰 Cost at Different Gas Prices
 
 #### Deployment Cost
 | Gas Price (gwei) | ETH Cost | USD Cost |
 |------------------|----------|----------|
-| 1 | 0.001457 ETH | $3.6421 |
-| 5 | 0.007284 ETH | $18.2103 |
-| 10 | 0.014568 ETH | $36.4206 |
-| 20 | 0.029136 ETH | $72.8412 |
-| 50 | 0.072841 ETH | $182.1030 |
+| 1 | 0.001335 ETH | $3.3382 |
+| 5 | 0.006676 ETH | $16.6909 |
+| 10 | 0.013353 ETH | $33.3818 |
+| 20 | 0.026705 ETH | $66.7635 |
+| 50 | 0.066764 ETH | $166.9087 |
 
-#### submit Function Call Cost
+#### initialize Function Call Cost
 | Gas Price (gwei) | ETH Cost | USD Cost |
 |------------------|----------|----------|
-| 1 | 0.000069 ETH | $0.1714 |
-| 5 | 0.000343 ETH | $0.8568 |
-| 10 | 0.000685 ETH | $1.7136 |
-| 20 | 0.001371 ETH | $3.4272 |
-| 50 | 0.003427 ETH | $8.5680 |
+| 1 | 0.000131 ETH | $0.3287 |
+| 5 | 0.000657 ETH | $1.6433 |
+| 10 | 0.001315 ETH | $3.2866 |
+| 20 | 0.002629 ETH | $6.5732 |
+| 50 | 0.006573 ETH | $16.4330 |
 
 ---
 
@@ -65,52 +69,52 @@
 
 | Metric | Value |
 |--------|-------|
-| **Gas Used** | 2,105,009 |
-| **ETH Cost** | 0.010525 ETH |
-| **USD Cost** | $26.3126 |
-| **Contract Size** | 9848 bytes |
+| **Gas Used** | 1,260,246 |
+| **ETH Cost** | 0.000038 ETH |
+| **USD Cost** | $0.0945 |
+| **Contract Size** | 5752 bytes |
 
 ### ⚡ Function Call Costs (Per Transaction)
 
 | Function Name | Avg Gas | ETH Cost | USD Cost |
 |---------------|---------|----------|----------|
-| verifyPayment | 46,821 | 0.000234 ETH | $0.5853 |
+| verifyPayment | 33,273 | 0.000001 ETH | $0.0025 |
 
 ### 📊 Gas Usage Statistics
 
 | Function | Min Gas | Avg Gas | Median Gas | Max Gas | Test Calls |
 |----------|---------|---------|------------|---------|------------|
-| verifyPayment | 8,046 | 46,821 | 56,011 | 78,245 | 15 |
+| verifyPayment | 11,040 | 33,273 | 38,133 | 51,202 | 20 |
 
 ### 💰 Cost at Different Gas Prices
 
 #### Deployment Cost
 | Gas Price (gwei) | ETH Cost | USD Cost |
 |------------------|----------|----------|
-| 1 | 0.002105 ETH | $5.2625 |
-| 5 | 0.010525 ETH | $26.3126 |
-| 10 | 0.02105 ETH | $52.6252 |
-| 20 | 0.0421 ETH | $105.2505 |
-| 50 | 0.10525 ETH | $263.1261 |
+| 1 | 0.00126 ETH | $3.1506 |
+| 5 | 0.006301 ETH | $15.7531 |
+| 10 | 0.012602 ETH | $31.5062 |
+| 20 | 0.025205 ETH | $63.0123 |
+| 50 | 0.063012 ETH | $157.5308 |
 
 #### verifyPayment Function Call Cost
 | Gas Price (gwei) | ETH Cost | USD Cost |
 |------------------|----------|----------|
-| 1 | 0.000047 ETH | $0.1171 |
-| 5 | 0.000234 ETH | $0.5853 |
-| 10 | 0.000468 ETH | $1.1705 |
-| 20 | 0.000936 ETH | $2.3411 |
-| 50 | 0.002341 ETH | $5.8526 |
+| 1 | 0.000033 ETH | $0.0832 |
+| 5 | 0.000166 ETH | $0.4159 |
+| 10 | 0.000333 ETH | $0.8318 |
+| 20 | 0.000665 ETH | $1.6637 |
+| 50 | 0.001664 ETH | $4.1591 |
 
 ---
 
 ## 📝 Notes
 
-- **Gas Price:** Current analysis uses 5 gwei. Actual costs may vary based on network conditions.
+- **Gas Price:** Current analysis uses 0.03 gwei. Actual costs may vary based on network conditions.
 - **ETH Price:** USD calculations based on ETH price of $2500.
 - **Deployment Costs:** One-time costs for deploying contracts to the blockchain.
 - **Function Costs:** Per-call costs for executing contract functions.
 
 ---
 
-*Report generated by Gas Cost Analysis Tool on 2025-06-30T07:55:53.997Z*
+*Report generated by Gas Cost Analysis Tool on 2025-07-18T02:14:02.458Z*

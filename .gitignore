@@ -20,6 +20,7 @@ docs/
 .env_owner
 .env_local
 .env_anvil
+packages/contracts/.env
 
 broadcast/
 .idea
