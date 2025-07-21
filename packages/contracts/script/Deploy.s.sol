@@ -55,8 +55,6 @@ contract DeployBtcMirror is Script {
             );
         }
 
-        BtcMirror mirror = BtcMirror(btcMirrorProxyAddress);
-
         // Deploy the transaction verifier
         BtcTxVerifier verifier = new BtcTxVerifier(btcMirrorProxyAddress);
 
