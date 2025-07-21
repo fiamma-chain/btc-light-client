@@ -47,13 +47,7 @@ contract BtcTxVerifier is IBtcTxVerifier {
         uint256 opReturnOutIx,
         bytes32 opReturnData
     ) external view returns (bool) {
-        {
-            uint256 mirrorHeight = mirror.getLatestBlockHeight();
-
-            require(mirrorHeight >= blockNum, "Bitcoin Mirror doesn't have that block yet");
-
-            require(mirrorHeight + 1 >= minConfirmations + blockNum, "Not enough Bitcoin block confirmations");
-        }
+        checkHeight(blockNum, minConfirmations);
 
         bytes32 blockHash = mirror.getBlockHash(blockNum);
         return BtcProofUtils.validatePayment(
@@ -67,5 +61,22 @@ contract BtcTxVerifier is IBtcTxVerifier {
             opReturnOutIx,
             opReturnData
         );
+    }
+
+    function verifyInclusion(uint256 minConfirmations, uint256 blockNum, TxInclusionProof calldata inclusionProof)
+        external
+        view
+        returns (bool)
+    {
+        checkHeight(blockNum, minConfirmations);
+
+        bytes32 blockHash = mirror.getBlockHash(blockNum);
+        return BtcProofUtils.validateInclusion(blockHash, inclusionProof);
+    }
+
+    function checkHeight(uint256 blockNum, uint256 minConfirmations) internal view {
+        uint256 mirrorHeight = mirror.getLatestBlockHeight();
+        require(mirrorHeight >= blockNum, "Bitcoin Mirror doesn't have that block yet");
+        require(mirrorHeight + 1 >= minConfirmations + blockNum, "Not enough Bitcoin block confirmations");
     }
 }

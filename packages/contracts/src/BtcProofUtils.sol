@@ -157,6 +157,26 @@ library BtcProofUtils {
         return true;
     }
 
+    function validateInclusion(bytes32 blockHash, TxInclusionProof calldata inclusionProof)
+        internal
+        pure
+        returns (bool)
+    {
+        // 1. Block header to block hash
+        require(getBlockHash(inclusionProof.blockHeader) == blockHash, "Block hash mismatch");
+
+        // 2. Raw transaction to TxID
+        bytes32 txId = getTxID(inclusionProof.rawTx);
+
+        // 2. and 3. Transaction ID included in block
+        bytes32 blockTxRoot = getBlockTxMerkleRoot(inclusionProof.blockHeader);
+        bytes32 txRoot = getTxMerkleRoot(txId, inclusionProof.txIndex, inclusionProof.txMerkleProof);
+        require(blockTxRoot == txRoot, "Tx merkle root mismatch");
+
+        // 4. We've verified that blockHash contains the transaction
+        return true;
+    }
+
     /**
      * @dev Compute a block hash given a block header.
      */
