@@ -42,4 +42,18 @@ interface IBtcTxVerifier {
      * @notice Returns the underlying mirror associated with this verifier.
      */
     function mirror() external view returns (IBtcMirror);
+
+    /**
+     * @notice Verifies that the a transaction is included in a given block.
+     *
+     * @param minConfirmations The minimum number of confirmations required for the block to be considered valid.
+     * @param blockNum The block number to verify inclusion in.
+     * @param inclusionProof The proof of inclusion of the transaction in the block.
+     *
+     * @return True if the transaction is included in the block, false otherwise.
+     */
+    function verifyInclusion(uint256 minConfirmations, uint256 blockNum, TxInclusionProof calldata inclusionProof)
+        external
+        view
+        returns (bool);
 }

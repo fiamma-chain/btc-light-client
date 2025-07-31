@@ -28,3 +28,25 @@ struct BtcTxProof {
      */
     bytes rawTx;
 }
+
+/**
+ * @notice Proof that a transaction (rawTx) is in a given block.
+ */
+struct TxInclusionProof {
+    /**
+     * @notice 80-byte block header.
+     */
+    bytes blockHeader;
+    /**
+     * @notice Index of transaction within the block.
+     */
+    uint256 txIndex;
+    /**
+     * @notice Merkle proof. Concatenated sibling hashes, 32*n bytes.
+     */
+    bytes txMerkleProof;
+    /**
+     * @notice Raw transaction, HASH-SERIALIZED, no witnesses.
+     */
+    bytes rawTx;
+}
