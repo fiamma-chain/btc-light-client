@@ -40,8 +40,7 @@ contract BtcTxVerifier is IBtcTxVerifier {
         uint256 blockNum,
         BtcTxProof calldata inclusionProof,
         uint256 txOutIx,
-        bytes32 destScriptHash,
-        BitcoinScriptType scriptType,
+        bytes calldata destScript,
         uint256 amountSats,
         bool checkOpReturn,
         uint256 opReturnOutIx,
@@ -51,15 +50,7 @@ contract BtcTxVerifier is IBtcTxVerifier {
 
         bytes32 blockHash = mirror.getBlockHash(blockNum);
         return BtcProofUtils.validatePayment(
-            blockHash,
-            inclusionProof,
-            txOutIx,
-            destScriptHash,
-            scriptType,
-            amountSats,
-            checkOpReturn,
-            opReturnOutIx,
-            opReturnData
+            blockHash, inclusionProof, txOutIx, destScript, amountSats, checkOpReturn, opReturnOutIx, opReturnData
         );
     }
 
