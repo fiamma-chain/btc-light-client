@@ -111,7 +111,7 @@ library BtcProofUtils {
         bytes32 blockHash,
         BtcTxProof calldata txProof,
         uint256 txOutIx,
-        bytes calldata destScript,
+        bytes32 destScriptHash,
         uint256 satoshisExpected,
         bool checkOpReturn,
         uint256 opReturnOutIx,
@@ -131,7 +131,7 @@ library BtcProofUtils {
         // 5. Finally, validate raw transaction pays stated recipient.
         BitcoinTx memory parsedTx = parseBitcoinTx(txProof.rawTx);
         BitcoinTxOut memory txo = parsedTx.outputs[txOutIx];
-        require(keccak256(destScript) == keccak256(txo.script), "Script mismatch");
+        require(destScriptHash == keccak256(txo.script), "Script mismatch");
         require(txo.valueSats == satoshisExpected, "Amount mismatch");
 
         // 6. Check OP_RETURN output if requested

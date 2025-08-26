@@ -204,6 +204,7 @@ contract BtcProofUtilsTest is Test {
     function testValidatePayment() public {
         bytes32 txId736 = 0x3667d5beede7d89e41b0ec456f99c93d6cc5e5caff4c4a5f993caea477b4b9b9;
         bytes memory destScript = hex"a914ae2f3d4b06579b62574d6178c10c882b9150374087";
+        bytes32 destScriptHash = keccak256(destScript);
 
         // Should succeed
         // this.validate(
@@ -220,7 +221,7 @@ contract BtcProofUtilsTest is Test {
             blockHash717695,
             BtcTxProof(header736000, txId736, 1, txProof736, tx736),
             0,
-            destScript,
+            destScriptHash,
             25200000,
             false,
             0,
@@ -230,7 +231,14 @@ contract BtcProofUtilsTest is Test {
         // - Bad tx proof (doesn't match root)
         vm.expectRevert("Tx merkle root mismatch");
         this.validate(
-            blockHash717695, BtcTxProof(headerGood, txId736, 1, txProof736, tx736), 0, destScript, 25200000, false, 0, 0
+            blockHash717695,
+            BtcTxProof(headerGood, txId736, 1, txProof736, tx736),
+            0,
+            destScriptHash,
+            25200000,
+            false,
+            0,
+            0
         );
 
         // - Wrong tx index
@@ -239,7 +247,7 @@ contract BtcProofUtilsTest is Test {
             blockHash736000,
             BtcTxProof(header736000, txId736, 2, txProof736, tx736),
             0,
-            destScript,
+            destScriptHash,
             25200000,
             false,
             0,
@@ -252,7 +260,7 @@ contract BtcProofUtilsTest is Test {
             blockHash736000,
             BtcTxProof(header736000, txId736, 1, txProof736, tx736),
             1,
-            destScript,
+            destScriptHash,
             25200000,
             false,
             0,
@@ -265,7 +273,7 @@ contract BtcProofUtilsTest is Test {
             blockHash736000,
             BtcTxProof(header736000, txId736, 1, txProof736, tx736),
             0,
-            bytes(hex"abcd"),
+            bytes32(hex"abcd"),
             25200000,
             false,
             0,
@@ -291,14 +299,14 @@ contract BtcProofUtilsTest is Test {
         bytes32 blockHash,
         BtcTxProof calldata txProof,
         uint256 txOutIx,
-        bytes calldata destScript,
+        bytes32 destScriptHash,
         uint256 sats,
         bool checkOpReturn,
         uint256 opReturnOutIx,
         bytes32 opReturnData
     ) public pure {
         BtcProofUtils.validatePayment(
-            blockHash, txProof, txOutIx, destScript, sats, checkOpReturn, opReturnOutIx, opReturnData
+            blockHash, txProof, txOutIx, destScriptHash, sats, checkOpReturn, opReturnOutIx, opReturnData
         );
     }
 }

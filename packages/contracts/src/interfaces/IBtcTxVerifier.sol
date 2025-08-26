@@ -21,7 +21,7 @@ interface IBtcTxVerifier {
         uint256 blockNum,
         BtcTxProof calldata inclusionProof,
         uint256 txOutIx,
-        bytes calldata destScript,
+        bytes32 destScriptHash,
         uint256 amountSats,
         bool checkOpReturn,
         uint256 opReturnOutIx,
