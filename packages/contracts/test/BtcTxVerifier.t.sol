@@ -4,6 +4,7 @@ pragma solidity ^0.8.13;
 import "forge-std/Test.sol";
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
+import "forge-std/console.sol";
 
 import "../src/BtcMirror.sol";
 import "../src/BtcTxVerifier.sol";
@@ -82,23 +83,24 @@ contract BtcTxVerifierTest is Test {
             hex"17" hex"a914ae2f3d4b06579b62574d6178c10c882b9150374087" hex"1c20590500000000" hex"17"
             hex"a91415ecf89e95eb07fbc351b3f7f4c54406f7ee5c1087" hex"00000000"
         );
-        bytes20 destSH = hex"ae2f3d4b06579b62574d6178c10c882b91503740";
+        bytes memory destScript = hex"a914ae2f3d4b06579b62574d6178c10c882b9150374087";
+        bytes32 destScriptHash = sha256(destScript);
 
         BtcTxProof memory txP = BtcTxProof(header736000, txId736, 1, txProof736, tx736);
 
-        assertTrue(verif.verifyPayment(1, 736000, txP, 0, destSH, BitcoinScriptType.P2SH, 25200000, false, 0, 0));
+        assertTrue(verif.verifyPayment(1, 736000, txP, 0, destScriptHash, 25200000, false, 0, 0));
 
         vm.expectRevert("Not enough Bitcoin block confirmations");
-        assertTrue(!verif.verifyPayment(2, 736000, txP, 0, destSH, BitcoinScriptType.P2SH, 25200000, false, 0, 0));
+        assertTrue(!verif.verifyPayment(2, 736000, txP, 0, destScriptHash, 25200000, false, 0, 0));
 
         vm.expectRevert("Amount mismatch");
-        assertTrue(!verif.verifyPayment(1, 736000, txP, 0, destSH, BitcoinScriptType.P2SH, 25200001, false, 0, 0));
+        assertTrue(!verif.verifyPayment(1, 736000, txP, 0, destScriptHash, 25200001, false, 0, 0));
 
-        vm.expectRevert("Script hash mismatch");
-        assertTrue(!verif.verifyPayment(1, 736000, txP, 1, destSH, BitcoinScriptType.P2SH, 25200000, false, 0, 0));
+        vm.expectRevert("Script mismatch");
+        assertTrue(!verif.verifyPayment(1, 736000, txP, 1, destScriptHash, 25200000, false, 0, 0));
 
         vm.expectRevert("Block hash mismatch");
-        assertTrue(!verif.verifyPayment(1, 700000, txP, 0, destSH, BitcoinScriptType.P2SH, 25200000, false, 0, 0));
+        assertTrue(!verif.verifyPayment(1, 700000, txP, 0, destScriptHash, 25200000, false, 0, 0));
     }
 
     function testVerifyP2WSHTx() public {
@@ -136,23 +138,24 @@ contract BtcTxVerifierTest is Test {
         // legacy transaction without witness data
         bytes memory tx258185 =
             hex"0200000001a1d5368e173544f905caac1180f994befc12d1e563d7dd04fdb8a8a70b5f35080400000000ffffffff05a08601000000000022002028ef96126ca176dbe4891cd581b697cb05d4ccbb73d78e8ddc6c376aae30cf5f4a0100000000000022512052d19a46c1a8cd90001a816420448b612d9c13bdb50d02d716d411deb94dc9304a010000000000002251205052522694bf08177416fe87545369819499d8481c8158c4f7e6420a9b6654944a01000000000000225120143f25ece73eae253a4e359b3bcb69e0b87e9d6abb1b6abb6bb5821d68eff63343dfe52500000000225120b3fb9347b334c4fce53b7920bc0e1e18b17d2fcd849b743dc8b7243b238e303000000000";
-        bytes32 destSH = hex"28ef96126ca176dbe4891cd581b697cb05d4ccbb73d78e8ddc6c376aae30cf5f";
+        bytes memory destScript = hex"002028ef96126ca176dbe4891cd581b697cb05d4ccbb73d78e8ddc6c376aae30cf5f";
+        bytes32 destScriptHash = sha256(destScript);
 
         BtcTxProof memory txP = BtcTxProof(header258185, txId258185, 228, txProof258185, tx258185);
 
-        assertTrue(verif.verifyPayment(1, 258185, txP, 0, destSH, BitcoinScriptType.P2WSH, 100000, false, 0, 0));
+        assertTrue(verif.verifyPayment(1, 258185, txP, 0, destScriptHash, 100000, false, 0, 0));
 
         vm.expectRevert("Not enough Bitcoin block confirmations");
-        assertTrue(!verif.verifyPayment(2, 258185, txP, 0, destSH, BitcoinScriptType.P2WSH, 100000, false, 0, 0));
+        assertTrue(!verif.verifyPayment(2, 258185, txP, 0, destScriptHash, 100000, false, 0, 0));
 
         vm.expectRevert("Amount mismatch");
-        assertTrue(!verif.verifyPayment(1, 258185, txP, 0, destSH, BitcoinScriptType.P2WSH, 100001, false, 0, 0));
+        assertTrue(!verif.verifyPayment(1, 258185, txP, 0, destScriptHash, 100001, false, 0, 0));
 
-        vm.expectRevert("Script hash mismatch");
-        assertTrue(!verif.verifyPayment(1, 258185, txP, 1, destSH, BitcoinScriptType.P2WSH, 100000, false, 0, 0));
+        vm.expectRevert("Script mismatch");
+        assertTrue(!verif.verifyPayment(1, 258185, txP, 1, destScriptHash, 100000, false, 0, 0));
 
         vm.expectRevert("Block hash mismatch");
-        assertTrue(!verif.verifyPayment(1, 258184, txP, 0, destSH, BitcoinScriptType.P2WSH, 100000, false, 0, 0));
+        assertTrue(!verif.verifyPayment(1, 258184, txP, 0, destScriptHash, 100000, false, 0, 0));
     }
 
     function testVerifyP2TRTx2() public {
@@ -187,23 +190,24 @@ contract BtcTxVerifierTest is Test {
         bytes32 txId258691 = 0xf6c92ed993f3ad532cdb6b5fe4868a31fa2315339f76f4e4e6d84991a7b939fd;
         bytes memory tx258691 =
             hex"02000000011c51c1b148deecc778e269568e021e3f48747ae01808d23f34303581a0c4e7440000000000ffffffff05ac7f0100000000002251203da465252bc8d0d8edf793168780b2e6574f182acd07d133b9e520368493cc53940200000000000022512052d19a46c1a8cd90001a816420448b612d9c13bdb50d02d716d411deb94dc930102700000000000022512076cd54985a86b449f1b177b39e1dbb6aa69802d37a186a4c44591fc9905c11bd102700000000000022512076cd54985a86b449f1b177b39e1dbb6aa69802d37a186a4c44591fc9905c11bd647800000000000022512024768243b3fbcbe285987d62f714277b7676f154d03240cdd3f6c934da966dc600000000";
-        bytes32 destSH = hex"3da465252bc8d0d8edf793168780b2e6574f182acd07d133b9e520368493cc53";
+        bytes memory destScript = hex"51203da465252bc8d0d8edf793168780b2e6574f182acd07d133b9e520368493cc53";
+        bytes32 destScriptHash = sha256(destScript);
 
         BtcTxProof memory txP = BtcTxProof(header258691, txId258691, 175, txProof258691, tx258691);
 
-        assertTrue(verif.verifyPayment(1, 258691, txP, 0, destSH, BitcoinScriptType.P2TR, 98220, false, 0, 0));
+        assertTrue(verif.verifyPayment(1, 258691, txP, 0, destScriptHash, 98220, false, 0, 0));
 
         vm.expectRevert("Not enough Bitcoin block confirmations");
-        assertTrue(!verif.verifyPayment(2, 258691, txP, 0, destSH, BitcoinScriptType.P2TR, 98220, false, 0, 0));
+        assertTrue(!verif.verifyPayment(2, 258691, txP, 0, destScriptHash, 98220, false, 0, 0));
 
         vm.expectRevert("Amount mismatch");
-        assertTrue(!verif.verifyPayment(1, 258691, txP, 0, destSH, BitcoinScriptType.P2TR, 98221, false, 0, 0));
+        assertTrue(!verif.verifyPayment(1, 258691, txP, 0, destScriptHash, 98221, false, 0, 0));
 
-        vm.expectRevert("Script hash mismatch");
-        assertTrue(!verif.verifyPayment(1, 258691, txP, 0, bytes32(0x0), BitcoinScriptType.P2TR, 98220, false, 0, 0));
+        vm.expectRevert("Script mismatch");
+        assertTrue(!verif.verifyPayment(1, 258691, txP, 0, bytes32(hex"00"), 98220, false, 0, 0));
 
         vm.expectRevert("Block hash mismatch");
-        assertTrue(!verif.verifyPayment(1, 258690, txP, 0, destSH, BitcoinScriptType.P2TR, 98220, false, 0, 0));
+        assertTrue(!verif.verifyPayment(1, 258690, txP, 0, destScriptHash, 98220, false, 0, 0));
     }
 
     function testVerifyP2TRTx() public {
@@ -237,24 +241,23 @@ contract BtcTxVerifierTest is Test {
         bytes32 txId251954 = 0x516bec8e1539127d4d645651db92c34518de9c97c37d914bc24f8e6ec99ffb6c;
         bytes memory tx251954 =
             hex"020000000127746ae8ab9fe560a680f7b35d443745aa50190976b1187afae0d1c694adedac0000000000fdffffff015139936f090000002251204875e52611f7c3233ce8633a79baea5bea760ce36b3f49308b655b92c101d10630d80300";
-        bytes32 destSH = hex"4875e52611f7c3233ce8633a79baea5bea760ce36b3f49308b655b92c101d106";
+        bytes memory destScript = hex"51204875e52611f7c3233ce8633a79baea5bea760ce36b3f49308b655b92c101d106";
+        bytes32 destScriptHash = sha256(destScript);
 
         BtcTxProof memory txP = BtcTxProof(header251954, txId251954, 2, txProof251954, tx251954);
 
-        assertTrue(verif.verifyPayment(1, 251954, txP, 0, destSH, BitcoinScriptType.P2TR, 40526625105, false, 0, 0));
+        assertTrue(verif.verifyPayment(1, 251954, txP, 0, destScriptHash, 40526625105, false, 0, 0));
 
         vm.expectRevert("Not enough Bitcoin block confirmations");
-        assertTrue(!verif.verifyPayment(2, 251954, txP, 0, destSH, BitcoinScriptType.P2TR, 40526625105, false, 0, 0));
+        assertTrue(!verif.verifyPayment(2, 251954, txP, 0, destScriptHash, 40526625105, false, 0, 0));
 
         vm.expectRevert("Amount mismatch");
-        assertTrue(!verif.verifyPayment(1, 251954, txP, 0, destSH, BitcoinScriptType.P2TR, 40526625106, false, 0, 0));
+        assertTrue(!verif.verifyPayment(1, 251954, txP, 0, destScriptHash, 40526625106, false, 0, 0));
 
-        vm.expectRevert("Script hash mismatch");
-        assertTrue(
-            !verif.verifyPayment(1, 251954, txP, 0, bytes32(0x0), BitcoinScriptType.P2TR, 40526625106, false, 0, 0)
-        );
+        vm.expectRevert("Script mismatch");
+        assertTrue(!verif.verifyPayment(1, 251954, txP, 0, bytes32(hex"00"), 40526625106, false, 0, 0));
 
         vm.expectRevert("Block hash mismatch");
-        assertTrue(!verif.verifyPayment(1, 251952, txP, 0, destSH, BitcoinScriptType.P2TR, 40526625105, false, 0, 0));
+        assertTrue(!verif.verifyPayment(1, 251952, txP, 0, destScriptHash, 40526625105, false, 0, 0));
     }
 }

@@ -98,7 +98,7 @@ contract BtcProofUtilsTest is Test {
 
     // Counting down from the chain of Bitcoin block hashes, to a specific txo.
     // 5. verify that we can hash a block header correctly
-    function testGetBlockHash() public {
+    function testGetBlockHash() public view {
         // Block 717695
         assertEq(BtcProofUtils.getBlockHash(headerGood), blockHash717695);
 
@@ -107,7 +107,7 @@ contract BtcProofUtilsTest is Test {
     }
 
     // 4. verify that we can get the transaction merkle root from a block header
-    function testGetBlockTxMerkleRoot() public {
+    function testGetBlockTxMerkleRoot() public view {
         bytes32 expectedRoot = 0xf8aec519bcd878c9713dc8153a72fd62e3667c5ade70d8d0415584b8528d79ca;
         assertEq(BtcProofUtils.getBlockTxMerkleRoot(headerGood), expectedRoot);
 
@@ -118,7 +118,7 @@ contract BtcProofUtilsTest is Test {
     }
 
     // 3. verify that we can recreate the same merkle root from a merkle proof
-    function testGetTxMerkleRoot() public {
+    function testGetTxMerkleRoot() public pure {
         // block 100000 has just 4 txs, short proof
         assertEq(
             BtcProofUtils.getTxMerkleRoot(
@@ -138,7 +138,7 @@ contract BtcProofUtilsTest is Test {
     }
 
     // 2. verify that we can get hash a raw tx to get the txid (merkle leaf)
-    function testGetTxID() public {
+    function testGetTxID() public pure {
         bytes32 expectedID = 0x3667d5beede7d89e41b0ec456f99c93d6cc5e5caff4c4a5f993caea477b4b9b9;
         assertEq(BtcProofUtils.getTxID(tx736), expectedID);
     }
@@ -150,7 +150,7 @@ contract BtcProofUtilsTest is Test {
     bytes constant buf2to16 = hex"fe00000100";
     bytes constant buf2to32 = hex"ff0000000001000000";
 
-    function testReadVarInt() public {
+    function testReadVarInt() public pure {
         uint256 val;
         uint256 newOffset;
         (val, newOffset) = BtcProofUtils.readVarInt(buf63_offset, 0);
@@ -175,7 +175,7 @@ contract BtcProofUtilsTest is Test {
     }
 
     // 1b. verify that we can parse a raw Bitcoin transaction
-    function testParseTx() public {
+    function testParseTx() public pure {
         BitcoinTx memory t = BtcProofUtils.parseBitcoinTx(tx736);
         assertTrue(t.validFormat);
 
@@ -194,26 +194,7 @@ contract BtcProofUtilsTest is Test {
         assertEq(t.locktime, 0);
     }
 
-    // 1c. finally, verify the recipient of a transaction *output*
-    bytes constant b0 = hex"0000000000000000000000000000000000000000";
-
-    function testGetP2WSH() public {
-        bytes memory validP2WSH = hex"0020748d118052d6e418922165b03a3191cb70ef216aa65428d6ca8951d20e78bdda";
-        bytes memory invalidP2WSH1 = hex"0120748d118052d6e418922165b03a3191cb70ef216aa65428d6ca8951d20e78bdda";
-        bytes memory invalidP2WSH2 = hex"0020748d118052d6e418922165b03a3191cb70ef216aa65428d6ca8951d20e78bd";
-
-        assertEq(
-            uint256(BtcProofUtils.getP2WSH(34, validP2WSH)),
-            0x748d118052d6e418922165b03a3191cb70ef216aa65428d6ca8951d20e78bdda
-        );
-
-        assertEq(uint256(BtcProofUtils.getP2WSH(32, validP2WSH)), 0);
-        assertEq(uint256(BtcProofUtils.getP2WSH(35, validP2WSH)), 0);
-        assertEq(uint256(BtcProofUtils.getP2WSH(34, invalidP2WSH1)), 0);
-        assertTrue(uint256(BtcProofUtils.getP2WSH(34, invalidP2WSH2)) != 0);
-    }
-
-    function testgetOpReturnScriptData() public {
+    function testGetOpReturnScriptData() public pure {
         bytes memory opReturnScript = hex"6a204669727374204f5052657475726e204d65737361676520492077617320686572";
         bytes32 expectedData = 0x4669727374204f5052657475726e204d65737361676520492077617320686572;
         assertEq(BtcProofUtils.getOpReturnScriptData(34, opReturnScript), expectedData);
@@ -222,16 +203,20 @@ contract BtcProofUtilsTest is Test {
     // 1,2,3,4,5. putting it all together, verify a payment.
     function testValidatePayment() public {
         bytes32 txId736 = 0x3667d5beede7d89e41b0ec456f99c93d6cc5e5caff4c4a5f993caea477b4b9b9;
-        bytes20 destScriptHash = hex"ae2f3d4b06579b62574d6178c10c882b91503740";
+        bytes memory destScript = hex"a914ae2f3d4b06579b62574d6178c10c882b9150374087";
+        bytes32 destScriptHash = sha256(destScript);
 
         // Should succeed
-        // this.validate(
-        //     blockHash736000,
-        //     BtcTxProof(header736000, txId736, 1, txProof736, tx736),
-        //     0,
-        //     destScriptHash,
-        //     25200000
-        // );
+        this.validate(
+            blockHash736000,
+            BtcTxProof(header736000, txId736, 1, txProof736, tx736),
+            0,
+            destScriptHash,
+            25200000,
+            false,
+            0,
+            0
+        );
 
         // Make each argument invalid, one at a time.
         vm.expectRevert("Block hash mismatch");
@@ -240,7 +225,6 @@ contract BtcProofUtilsTest is Test {
             BtcTxProof(header736000, txId736, 1, txProof736, tx736),
             0,
             destScriptHash,
-            BitcoinScriptType.P2WSH,
             25200000,
             false,
             0,
@@ -254,7 +238,6 @@ contract BtcProofUtilsTest is Test {
             BtcTxProof(headerGood, txId736, 1, txProof736, tx736),
             0,
             destScriptHash,
-            BitcoinScriptType.P2WSH,
             25200000,
             false,
             0,
@@ -268,7 +251,6 @@ contract BtcProofUtilsTest is Test {
             BtcTxProof(header736000, txId736, 2, txProof736, tx736),
             0,
             destScriptHash,
-            BitcoinScriptType.P2WSH,
             25200000,
             false,
             0,
@@ -276,13 +258,12 @@ contract BtcProofUtilsTest is Test {
         );
 
         // - Wrong tx output index
-        vm.expectRevert("Script hash mismatch");
+        vm.expectRevert("Script mismatch");
         this.validate(
             blockHash736000,
             BtcTxProof(header736000, txId736, 1, txProof736, tx736),
             1,
             destScriptHash,
-            BitcoinScriptType.P2WSH,
             25200000,
             false,
             0,
@@ -290,13 +271,12 @@ contract BtcProofUtilsTest is Test {
         );
 
         // - Wrong dest script hash
-        vm.expectRevert("Script hash mismatch");
+        vm.expectRevert("Script mismatch");
         this.validate(
             blockHash736000,
             BtcTxProof(header736000, txId736, 1, txProof736, tx736),
             0,
-            bytes20(hex"abcd"),
-            BitcoinScriptType.P2WSH,
+            bytes32(hex"abcd"),
             25200000,
             false,
             0,
@@ -322,15 +302,14 @@ contract BtcProofUtilsTest is Test {
         bytes32 blockHash,
         BtcTxProof calldata txProof,
         uint256 txOutIx,
-        bytes20 destScriptHash,
-        BitcoinScriptType scriptType,
+        bytes32 destScriptHash,
         uint256 sats,
         bool checkOpReturn,
         uint256 opReturnOutIx,
         bytes32 opReturnData
     ) public pure {
         BtcProofUtils.validatePayment(
-            blockHash, txProof, txOutIx, destScriptHash, scriptType, sats, checkOpReturn, opReturnOutIx, opReturnData
+            blockHash, txProof, txOutIx, destScriptHash, sats, checkOpReturn, opReturnOutIx, opReturnData
         );
     }
 }
