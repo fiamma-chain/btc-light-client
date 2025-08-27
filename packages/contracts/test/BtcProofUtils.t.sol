@@ -204,16 +204,19 @@ contract BtcProofUtilsTest is Test {
     function testValidatePayment() public {
         bytes32 txId736 = 0x3667d5beede7d89e41b0ec456f99c93d6cc5e5caff4c4a5f993caea477b4b9b9;
         bytes memory destScript = hex"a914ae2f3d4b06579b62574d6178c10c882b9150374087";
-        bytes32 destScriptHash = keccak256(destScript);
+        bytes32 destScriptHash = sha256(destScript);
 
         // Should succeed
-        // this.validate(
-        //     blockHash736000,
-        //     BtcTxProof(header736000, txId736, 1, txProof736, tx736),
-        //     0,
-        //     destScriptHash,
-        //     25200000
-        // );
+        this.validate(
+            blockHash736000,
+            BtcTxProof(header736000, txId736, 1, txProof736, tx736),
+            0,
+            destScriptHash,
+            25200000,
+            false,
+            0,
+            0
+        );
 
         // Make each argument invalid, one at a time.
         vm.expectRevert("Block hash mismatch");
