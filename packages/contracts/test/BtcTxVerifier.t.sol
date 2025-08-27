@@ -84,7 +84,7 @@ contract BtcTxVerifierTest is Test {
             hex"a91415ecf89e95eb07fbc351b3f7f4c54406f7ee5c1087" hex"00000000"
         );
         bytes memory destScript = hex"a914ae2f3d4b06579b62574d6178c10c882b9150374087";
-        bytes32 destScriptHash = keccak256(destScript);
+        bytes32 destScriptHash = sha256(destScript);
 
         BtcTxProof memory txP = BtcTxProof(header736000, txId736, 1, txProof736, tx736);
 
@@ -139,7 +139,7 @@ contract BtcTxVerifierTest is Test {
         bytes memory tx258185 =
             hex"0200000001a1d5368e173544f905caac1180f994befc12d1e563d7dd04fdb8a8a70b5f35080400000000ffffffff05a08601000000000022002028ef96126ca176dbe4891cd581b697cb05d4ccbb73d78e8ddc6c376aae30cf5f4a0100000000000022512052d19a46c1a8cd90001a816420448b612d9c13bdb50d02d716d411deb94dc9304a010000000000002251205052522694bf08177416fe87545369819499d8481c8158c4f7e6420a9b6654944a01000000000000225120143f25ece73eae253a4e359b3bcb69e0b87e9d6abb1b6abb6bb5821d68eff63343dfe52500000000225120b3fb9347b334c4fce53b7920bc0e1e18b17d2fcd849b743dc8b7243b238e303000000000";
         bytes memory destScript = hex"002028ef96126ca176dbe4891cd581b697cb05d4ccbb73d78e8ddc6c376aae30cf5f";
-        bytes32 destScriptHash = keccak256(destScript);
+        bytes32 destScriptHash = sha256(destScript);
 
         BtcTxProof memory txP = BtcTxProof(header258185, txId258185, 228, txProof258185, tx258185);
 
@@ -191,7 +191,7 @@ contract BtcTxVerifierTest is Test {
         bytes memory tx258691 =
             hex"02000000011c51c1b148deecc778e269568e021e3f48747ae01808d23f34303581a0c4e7440000000000ffffffff05ac7f0100000000002251203da465252bc8d0d8edf793168780b2e6574f182acd07d133b9e520368493cc53940200000000000022512052d19a46c1a8cd90001a816420448b612d9c13bdb50d02d716d411deb94dc930102700000000000022512076cd54985a86b449f1b177b39e1dbb6aa69802d37a186a4c44591fc9905c11bd102700000000000022512076cd54985a86b449f1b177b39e1dbb6aa69802d37a186a4c44591fc9905c11bd647800000000000022512024768243b3fbcbe285987d62f714277b7676f154d03240cdd3f6c934da966dc600000000";
         bytes memory destScript = hex"51203da465252bc8d0d8edf793168780b2e6574f182acd07d133b9e520368493cc53";
-        bytes32 destScriptHash = keccak256(destScript);
+        bytes32 destScriptHash = sha256(destScript);
 
         BtcTxProof memory txP = BtcTxProof(header258691, txId258691, 175, txProof258691, tx258691);
 
@@ -242,7 +242,7 @@ contract BtcTxVerifierTest is Test {
         bytes memory tx251954 =
             hex"020000000127746ae8ab9fe560a680f7b35d443745aa50190976b1187afae0d1c694adedac0000000000fdffffff015139936f090000002251204875e52611f7c3233ce8633a79baea5bea760ce36b3f49308b655b92c101d10630d80300";
         bytes memory destScript = hex"51204875e52611f7c3233ce8633a79baea5bea760ce36b3f49308b655b92c101d106";
-        bytes32 destScriptHash = keccak256(destScript);
+        bytes32 destScriptHash = sha256(destScript);
 
         BtcTxProof memory txP = BtcTxProof(header251954, txId251954, 2, txProof251954, tx251954);
 
