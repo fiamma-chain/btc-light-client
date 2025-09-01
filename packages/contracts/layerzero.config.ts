@@ -29,7 +29,7 @@ const config: OAppReadOmniGraphHardhat = {
                                 msgType: 1,
                                 optionType: ExecutorOptionType.LZ_READ,
                                 gas: 80000,
-                                size: 64, // uint256 (32 bytes) + bytes32 (32 bytes) = 64 bytes
+                                size: 96, // uint256 (32 bytes) + uint256 (32 bytes) + bytes32 (32 bytes) = 96 bytes
                                 value: 0,
                             },
                         ],

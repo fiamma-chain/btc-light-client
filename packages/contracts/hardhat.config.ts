@@ -3,12 +3,15 @@ import 'dotenv/config'
 import 'hardhat-deploy'
 import 'hardhat-contract-sizer'
 import '@nomiclabs/hardhat-ethers'
+import '@nomicfoundation/hardhat-verify'
+
+
 import '@layerzerolabs/toolbox-hardhat'
 import { HardhatUserConfig, HttpNetworkAccountsUserConfig } from 'hardhat/types'
 
 import { EndpointId } from '@layerzerolabs/lz-definitions'
 
-import './tasks/readData'
+import './tasks/readBtcData'
 
 // Set your preferred authentication method
 //
@@ -18,6 +21,12 @@ const MNEMONIC = process.env.MNEMONIC
 
 // If you prefer to be authenticated using a private key, set a PRIVATE_KEY environment variable
 const PRIVATE_KEY = process.env.PRIVATE_KEY
+
+// Alchemy API key for paid node access
+const ALCHEMY_API_KEY = process.env.ALCHEMY_API_KEY
+
+// Etherscan API key for contract verification (works for most EVM block explorers)
+const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY
 
 const accounts: HttpNetworkAccountsUserConfig | undefined = MNEMONIC
     ? { mnemonic: MNEMONIC }
@@ -31,7 +40,20 @@ if (accounts == null) {
     )
 }
 
+if (!ALCHEMY_API_KEY) {
+    console.warn(
+        'Could not find ALCHEMY_API_KEY environment variable. Network configurations will not work properly.'
+    )
+}
+
+if (!ETHERSCAN_API_KEY) {
+    console.warn(
+        'Could not find ETHERSCAN_API_KEY environment variable. Contract verification will not work.'
+    )
+}
+
 const config: HardhatUserConfig = {
+
     solidity: {
         version: '0.8.30',
         settings: {
@@ -39,15 +61,17 @@ const config: HardhatUserConfig = {
                 enabled: true,
                 runs: 200,
             },
+            viaIR: true,
         },
     },
+    paths: {
+        artifacts: './out',
+        sources: './src',
+    },
     networks: {
-        hardhat: {
-            // Hardhat network configuration
-        },
-        'base-testnet': {
+        'base-sepolia': {
             eid: EndpointId.BASESEP_V2_TESTNET,
-            url: process.env.RPC_URL_BASE || 'https://sepolia.base.org',
+            url: `https://base-sepolia.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`,
             accounts,
         },
     },
@@ -56,6 +80,14 @@ const config: HardhatUserConfig = {
             default: 0, // Use the first account as deployer
         },
     },
+    etherscan: {
+        apiKey: process.env.ETHERSCAN_API_KEY || '',
+    },
+    sourcify: {
+        enabled: true
+    }
+
+
 
 }
 

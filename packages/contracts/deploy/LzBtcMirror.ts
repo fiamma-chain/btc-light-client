@@ -18,56 +18,57 @@ const deploy: DeployFunction = async (hre) => {
     // Get LayerZero EndpointV2 deployment
     const endpointV2Deployment = await hre.deployments.get('EndpointV2')
 
-    // Configuration for different networks
-    const networkConfigs = {
-        'ethereum': {
-            targetEid: EndpointId.ARBITRUM_V2_MAINNET,
-            targetBtcMirror: '0x0000000000000000000000000000000000000000', // TODO: Set actual target BtcMirror address
-        },
-        'polygon': {
-            targetEid: EndpointId.ARBITRUM_V2_MAINNET,
-            targetBtcMirror: '0x0000000000000000000000000000000000000000', // TODO: Set actual target BtcMirror address
-        },
-        'sepolia': {
-            targetEid: EndpointId.ARBSEP_V2_TESTNET,
-            targetBtcMirror: '0x0000000000000000000000000000000000000000', // TODO: Set actual target BtcMirror address
-        },
-        'base': {
-            targetEid: EndpointId.ARBITRUM_V2_MAINNET,
-            targetBtcMirror: '0x0000000000000000000000000000000000000000', // TODO: Set actual target BtcMirror address
-        }
+    // Hub configuration - All LzBtcMirror contracts point to Arbitrum
+    const HUB_CONFIG = {
+        targetEid: EndpointId.ARBSEP_V2_TESTNET,
+        targetBtcMirror: '0x19BEE54b8EDA9c938AC1Ef164751e937596a024b',
     }
 
-    const config = networkConfigs[hre.network.name as keyof typeof networkConfigs]
-
-    if (!config) {
-        throw new Error(`Network ${hre.network.name} not supported for LzBtcMirror deployment`)
+    if (HUB_CONFIG.targetBtcMirror === '0x0000000000000000000000000000000000000000') {
+        console.warn(`⚠️  WARNING: targetBtcMirror address not set for Arbitrum Hub`)
+        console.warn('Please update HUB_CONFIG.targetBtcMirror in deploy/LzBtcMirror.ts before deployment')
     }
 
-    if (config.targetBtcMirror === '0x0000000000000000000000000000000000000000') {
-        console.warn(`⚠️  WARNING: targetBtcMirror address not set for ${hre.network.name}`)
-        console.warn('Please update the address in deploy/LzBtcMirror.ts before deployment')
-    }
-
-    const { address } = await deploy(contractName, {
+    const { address, newlyDeployed } = await deploy(contractName, {
         from: deployer,
         args: [
             endpointV2Deployment.address, // LayerZero EndpointV2 address
             deployer, // owner/delegate
             ChannelId.READ_CHANNEL_1, // LayerZero read channel ID
-            config.targetEid, // Target chain endpoint ID
-            config.targetBtcMirror, // BtcMirror contract address on target chain
+            HUB_CONFIG.targetEid, // Target chain endpoint ID
+            HUB_CONFIG.targetBtcMirror, // BtcMirror contract address on target chain
         ],
         log: true,
         skipIfAlreadyDeployed: false,
     })
 
+    // Verify contract source code if verification is requested and we're not on a local network
+    if (hre.network.name !== 'hardhat' && hre.network.name !== 'localhost') {
+        console.log(`📋 Verifying contract source code...`)
+        try {
+            await hre.run('verify:verify', {
+                address: address,
+                constructorArguments: [
+                    endpointV2Deployment.address,
+                    deployer,
+                    ChannelId.READ_CHANNEL_1,
+                    HUB_CONFIG.targetEid,
+                    HUB_CONFIG.targetBtcMirror,
+                ],
+            })
+            console.log(`✅ Contract verified on block explorer!`)
+        } catch (error: any) {
+            console.log(`❌ Verification failed:`, error.message || error)
+            console.log(`You can manually verify later with:`)
+            console.log(`npx hardhat verify --network ${hre.network.name} ${address} ${endpointV2Deployment.address} ${deployer} ${ChannelId.READ_CHANNEL_1} ${HUB_CONFIG.targetEid} ${HUB_CONFIG.targetBtcMirror}`)
+        }
+    }
+
     console.log(`Deployed contract: ${contractName}, network: ${hre.network.name}, address: ${address}`)
     console.log(`Configuration:`)
     console.log(`  - LayerZero Endpoint: ${endpointV2Deployment.address}`)
-    console.log(`  - Target EID: ${config.targetEid}`)
-    console.log(`  - Target BtcMirror: ${config.targetBtcMirror}`)
-    console.log(`  - Read Channel: ${ChannelId.READ_CHANNEL_1}`)
+    console.log(`  - Target EID: ${HUB_CONFIG.targetEid}`)
+    console.log(`  - Target BtcMirror: ${HUB_CONFIG.targetBtcMirror}`)
 }
 
 deploy.tags = [contractName]

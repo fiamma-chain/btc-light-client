@@ -44,7 +44,11 @@ contract BtcMirror is IBtcMirror, OwnableUpgradeable {
      * @notice Emitted only after a difficulty retarget, when the contract
      *         accepts a new heaviest chain with updated difficulty.
      */
-    event NewTotalDifficultySinceRetarget(uint256 blockHeight, uint256 totalDifficulty, uint32 newDifficultyBits);
+    event NewTotalDifficultySinceRetarget(
+        uint256 blockHeight,
+        uint256 totalDifficulty,
+        uint32 newDifficultyBits
+    );
 
     /**
      * @notice Emitted when we reorg out a portion of the chain.
@@ -129,14 +133,21 @@ contract BtcMirror is IBtcMirror, OwnableUpgradeable {
      * @dev This is optimized for LayerZero cross-chain reads to reduce call count
      * @param blockNumber The specific block number to get hash for
      * @return latestHeight The latest block height
+     * @return requestedBlockNumber The requested block number
      * @return blockHash The hash of the requested block
      */
-    function getLatestHeightAndBlockHash(uint256 blockNumber)
+    function getLatestHeightAndBlockHash(
+        uint256 blockNumber
+    )
         public
         view
-        returns (uint256 latestHeight, bytes32 blockHash)
+        returns (
+            uint256 latestHeight,
+            uint256 requestedBlockNumber,
+            bytes32 blockHash
+        )
     {
-        return (latestBlockHeight, blockHeightToHash[blockNumber]);
+        return (latestBlockHeight, blockNumber, blockHeightToHash[blockNumber]);
     }
     /**
      * @notice Allows the owner to submit a new Bitcoin chain segment.
@@ -145,10 +156,13 @@ contract BtcMirror is IBtcMirror, OwnableUpgradeable {
      *      It verifies the block headers and updates the state accordingly.
      */
 
-    function submit_uncheck(uint256 blockHeight, bytes calldata blockHeaders, uint8 v, bytes32 r, bytes32 s)
-        external
-        onlyOwner
-    {
+    function submit_uncheck(
+        uint256 blockHeight,
+        bytes calldata blockHeaders,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external onlyOwner {
         bytes32 hash = keccak256(abi.encode(blockHeight, blockHeaders));
         address expected_addr = ecrecover(hash, v, r, s);
         require(expected_addr == msg.sender, "Invalid signature");
@@ -161,7 +175,9 @@ contract BtcMirror is IBtcMirror, OwnableUpgradeable {
         for (uint256 i = 0; i < numHeaders; i++) {
             bytes calldata blockHeader = blockHeaders[80 * i:80 * (i + 1)];
             uint256 blockNum = blockHeight + i;
-            uint256 blockHashNum = Endian.reverse256(uint256(sha256(abi.encode(sha256(blockHeader)))));
+            uint256 blockHashNum = Endian.reverse256(
+                uint256(sha256(abi.encode(sha256(blockHeader))))
+            );
             blockHeightToHash[blockNum] = bytes32(blockHashNum);
 
             if (blockNum % 2016 == 0) {
@@ -172,8 +188,14 @@ contract BtcMirror is IBtcMirror, OwnableUpgradeable {
         }
 
         latestBlockHeight = newHeight;
-        latestBlockTime =
-            Endian.reverse32(uint32(bytes4(blockHeaders[blockHeaders.length - 12:blockHeaders.length - 8])));
+        latestBlockTime = Endian.reverse32(
+            uint32(
+                bytes4(
+                    blockHeaders[blockHeaders.length - 12:blockHeaders.length -
+                        8]
+                )
+            )
+        );
 
         bytes32 newTip = getBlockHash(newHeight);
         emit NewTip(newHeight, latestBlockTime, newTip);
@@ -185,15 +207,22 @@ contract BtcMirror is IBtcMirror, OwnableUpgradeable {
      * @param blockHeight block height
      * @return true if the block header is valid, false otherwise
      */
-    function validateHeader(bytes calldata header, uint256 blockHeight) public view returns (bool) {
+    function validateHeader(
+        bytes calldata header,
+        uint256 blockHeight
+    ) public view returns (bool) {
         require(header.length == 80, "wrong header length");
         require(blockHeight > 0, "The genesis block cannot be validated");
 
         // 1. Validate block hash calculation
-        uint256 blockHashNum = Endian.reverse256(uint256(sha256(abi.encode(sha256(header)))));
+        uint256 blockHashNum = Endian.reverse256(
+            uint256(sha256(abi.encode(sha256(header))))
+        );
 
         // 2. Validate previous block hash
-        bytes32 prevHash = bytes32(Endian.reverse256(uint256(bytes32(header[4:36]))));
+        bytes32 prevHash = bytes32(
+            Endian.reverse256(uint256(bytes32(header[4:36])))
+        );
 
         // Check if previous block exists
         if (blockHeightToHash[blockHeight - 1] == bytes32(0)) {
@@ -235,7 +264,9 @@ contract BtcMirror is IBtcMirror, OwnableUpgradeable {
         }
 
         // 7. Validate Merkle Root
-        bytes32 merkleRoot = bytes32(Endian.reverse256(uint256(bytes32(header[36:68]))));
+        bytes32 merkleRoot = bytes32(
+            Endian.reverse256(uint256(bytes32(header[36:68])))
+        );
         if (merkleRoot == bytes32(0)) {
             return false;
         }
@@ -279,10 +310,14 @@ contract BtcMirror is IBtcMirror, OwnableUpgradeable {
         require(blockHeight > 0, "The genesis block cannot be challenged");
 
         uint256 numWrongHeaders = wrongBlockHeaders.length / 80;
-        require(numWrongHeaders * 80 == wrongBlockHeaders.length, "wrong header length");
+        require(
+            numWrongHeaders * 80 == wrongBlockHeaders.length,
+            "wrong header length"
+        );
         require(numWrongHeaders > 0, "must submit at least one block");
 
-        bytes calldata wrongHeader = wrongBlockHeaders[80 * wrong_idx:80 * (wrong_idx + 1)];
+        bytes calldata wrongHeader = wrongBlockHeaders[80 * wrong_idx:80 *
+            (wrong_idx + 1)];
         uint256 wrongBlockHeight = blockHeight + wrong_idx;
 
         // Validate the challenged block header
@@ -338,7 +373,9 @@ contract BtcMirror is IBtcMirror, OwnableUpgradeable {
             // the submitted chain segment crosses into a new difficulty
             // period. this is happens once every ~2 weeks. check total work
             bytes calldata lastHeader = blockHeaders[80 * (numHeaders - 1):];
-            uint32 newDifficultyBits = Endian.reverse32(uint32(bytes4(lastHeader[72:76])));
+            uint32 newDifficultyBits = Endian.reverse32(
+                uint32(bytes4(lastHeader[72:76]))
+            );
 
             uint256 newWork = getWorkInPeriod(newPeriod, newHeight);
             require(newWork > oldWork, "insufficient total difficulty");
@@ -349,7 +386,11 @@ contract BtcMirror is IBtcMirror, OwnableUpgradeable {
                 blockHeightToHash[i] = 0;
             }
 
-            emit NewTotalDifficultySinceRetarget(newHeight, newWork, newDifficultyBits);
+            emit NewTotalDifficultySinceRetarget(
+                newHeight,
+                newWork,
+                newDifficultyBits
+            );
         } else {
             // here we know what newPeriod == oldPeriod == parentPeriod
             // with identical per-block difficulty. just keep the longest chain.
@@ -372,7 +413,10 @@ contract BtcMirror is IBtcMirror, OwnableUpgradeable {
         }
     }
 
-    function getWorkInPeriod(uint256 period, uint256 height) private view returns (uint256) {
+    function getWorkInPeriod(
+        uint256 period,
+        uint256 height
+    ) private view returns (uint256) {
         uint256 target = periodToTarget[period];
         uint256 workPerBlock = (2 ** 256 - 1) / target;
 
@@ -382,10 +426,15 @@ contract BtcMirror is IBtcMirror, OwnableUpgradeable {
         return numBlocks * workPerBlock;
     }
 
-    function submitBlock(uint256 blockHeight, bytes calldata blockHeader) private returns (uint256 numReorged) {
+    function submitBlock(
+        uint256 blockHeight,
+        bytes calldata blockHeader
+    ) private returns (uint256 numReorged) {
         // compute the block hash
         assert(blockHeader.length == 80);
-        uint256 blockHashNum = Endian.reverse256(uint256(sha256(abi.encode(sha256(blockHeader)))));
+        uint256 blockHashNum = Endian.reverse256(
+            uint256(sha256(abi.encode(sha256(blockHeader))))
+        );
 
         // optimistically save the block hash
         // we'll revert if the header turns out to be invalid
@@ -399,7 +448,9 @@ contract BtcMirror is IBtcMirror, OwnableUpgradeable {
         blockHeightToHash[blockHeight] = newHash;
 
         // verify previous hash
-        bytes32 prevHash = bytes32(Endian.reverse256(uint256(bytes32(blockHeader[4:36]))));
+        bytes32 prevHash = bytes32(
+            Endian.reverse256(uint256(bytes32(blockHeader[4:36])))
+        );
         require(prevHash == blockHeightToHash[blockHeight - 1], "bad parent");
         require(prevHash != bytes32(0), "parent block not yet submitted");
 

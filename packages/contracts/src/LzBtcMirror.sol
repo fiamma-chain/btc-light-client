@@ -3,10 +3,7 @@ pragma solidity ^0.8.20;
 
 // Import necessary LayerZero interfaces and contracts
 import {AddressCast} from "@layerzerolabs/lz-evm-protocol-v2/contracts/libs/AddressCast.sol";
-import {
-    MessagingFee,
-    MessagingReceipt
-} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroEndpointV2.sol";
+import {MessagingFee, MessagingReceipt} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroEndpointV2.sol";
 import {Origin} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
 import {OAppOptionsType3} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OAppOptionsType3.sol";
 import {ReadCodecV1, EVMCallRequestV1} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/ReadCodecV1.sol";
@@ -22,7 +19,11 @@ contract LzBtcMirror is OAppRead, OAppOptionsType3 {
     /// @param blockNumber The requested block number
     /// @param blockHash The block hash
     /// @param latestHeight The latest block height
-    event DataReceived(uint256 indexed blockNumber, bytes32 blockHash, uint256 latestHeight);
+    event DataReceived(
+        uint256 indexed latestHeight,
+        uint256 indexed blockNumber,
+        bytes32 indexed blockHash
+    );
 
     /// @notice LayerZero read channel ID
     uint32 public READ_CHANNEL;
@@ -48,10 +49,13 @@ contract LzBtcMirror is OAppRead, OAppOptionsType3 {
      * @param _targetEid The target chain endpoint ID where BtcMirror is deployed
      * @param _targetBtcMirror The BtcMirror contract address on target chain
      */
-    constructor(address _endpoint, address _delegate, uint32 _readChannel, uint32 _targetEid, address _targetBtcMirror)
-        OAppRead(_endpoint, _delegate)
-        Ownable(_delegate)
-    {
+    constructor(
+        address _endpoint,
+        address _delegate,
+        uint32 _readChannel,
+        uint32 _targetEid,
+        address _targetBtcMirror
+    ) OAppRead(_endpoint, _delegate) Ownable(_delegate) {
         READ_CHANNEL = _readChannel;
         targetEid = _targetEid;
         targetBtcMirror = _targetBtcMirror;
@@ -68,12 +72,17 @@ contract LzBtcMirror is OAppRead, OAppOptionsType3 {
      * @param _extraOptions Additional messaging options
      * @return fee The estimated messaging fee
      */
-    function quoteReadFee(uint256 blockNumber, bytes calldata _extraOptions)
-        external
-        view
-        returns (MessagingFee memory fee)
-    {
-        return _quote(READ_CHANNEL, _getCmd(blockNumber), combineOptions(READ_CHANNEL, READ_TYPE, _extraOptions), false);
+    function quoteReadFee(
+        uint256 blockNumber,
+        bytes calldata _extraOptions
+    ) external view returns (MessagingFee memory fee) {
+        return
+            _quote(
+                READ_CHANNEL,
+                _getCmd(blockNumber),
+                combineOptions(READ_CHANNEL, READ_TYPE, _extraOptions),
+                false
+            );
     }
 
     // ──────────────────────────────────────────────────────────────────────────────
@@ -87,22 +96,22 @@ contract LzBtcMirror is OAppRead, OAppOptionsType3 {
      * @param _extraOptions Additional messaging options
      * @return receipt The LayerZero messaging receipt for the request
      */
-    function readData(uint256 blockNumber, bytes calldata _extraOptions)
-        external
-        payable
-        returns (MessagingReceipt memory receipt)
-    {
+    function readData(
+        uint256 blockNumber,
+        bytes calldata _extraOptions
+    ) external payable returns (MessagingReceipt memory receipt) {
         // 1. Build the read command for the target BtcMirror
         bytes memory cmd = _getCmd(blockNumber);
 
         // 2. Send the read request via LayerZero
-        return _lzSend(
-            READ_CHANNEL,
-            cmd,
-            combineOptions(READ_CHANNEL, READ_TYPE, _extraOptions),
-            MessagingFee(msg.value, 0),
-            payable(msg.sender)
-        );
+        return
+            _lzSend(
+                READ_CHANNEL,
+                cmd,
+                combineOptions(READ_CHANNEL, READ_TYPE, _extraOptions),
+                MessagingFee(msg.value, 0),
+                payable(msg.sender)
+            );
     }
 
     // ──────────────────────────────────────────────────────────────────────────────
@@ -114,14 +123,19 @@ contract LzBtcMirror is OAppRead, OAppOptionsType3 {
      * @param blockNumber The Bitcoin block number
      * @return cmd The encoded command that specifies what data to read
      */
-    function _getCmd(uint256 blockNumber) internal view returns (bytes memory cmd) {
+    function _getCmd(
+        uint256 blockNumber
+    ) internal view returns (bytes memory cmd) {
         // 1. Define WHAT function to call on the target contract
-        bytes memory callData = abi.encodeWithSelector(IBtcMirror.getLatestHeightAndBlockHash.selector, blockNumber);
+        bytes memory callData = abi.encodeWithSelector(
+            IBtcMirror.getLatestHeightAndBlockHash.selector,
+            blockNumber
+        );
 
         // 2. Build the read request specifying WHERE and HOW to fetch the data
         EVMCallRequestV1[] memory readRequests = new EVMCallRequestV1[](1);
         readRequests[0] = EVMCallRequestV1({
-            appRequestLabel: READ_TYPE,
+            appRequestLabel: 1,
             targetEid: targetEid,
             isBlockNum: false,
             blockNumOrTimestamp: uint64(block.timestamp),
@@ -143,22 +157,22 @@ contract LzBtcMirror is OAppRead, OAppOptionsType3 {
      * @param _message The data returned from the read request
      */
     function _lzReceive(
-        Origin calldata, /*_origin*/
-        bytes32, /*_guid*/
+        Origin calldata /*_origin*/,
+        bytes32 /*_guid*/,
         bytes calldata _message,
-        address, /*_executor*/
+        address /*_executor*/,
         bytes calldata /*_extraData*/
     ) internal override {
-        // 1. Decode the returned data
-        (uint256 blockNumber, uint256 latestHeight, bytes32 blockHash) =
-            abi.decode(_message, (uint256, uint256, bytes32));
+        // 1. Decode the returned data (latestHeight, blockNumber, and blockHash)
+        (uint256 latestHeight, uint256 blockNumber, bytes32 blockHash) = abi
+            .decode(_message, (uint256, uint256, bytes32));
 
         // 2. Store the received data
         receivedLatestHeight = latestHeight;
         receivedBlockHashes[blockNumber] = blockHash;
 
         // 3. Emit an event with the received data
-        emit DataReceived(blockNumber, blockHash, latestHeight);
+        emit DataReceived(latestHeight, blockNumber, blockHash);
     }
 
     // ──────────────────────────────────────────────────────────────────────────────
@@ -187,14 +201,25 @@ contract LzBtcMirror is OAppRead, OAppOptionsType3 {
      * @dev Compatible with BtcMirror.getLatestHeightAndBlockHash for unified ABI
      * @param blockNumber The specific block number to get hash for
      * @return latestHeight The latest block height from received data
+     * @return requestedBlockNumber The requested block number (echoed back)
      * @return blockHash The hash of the requested block from received data
      */
-    function getLatestHeightAndBlockHash(uint256 blockNumber)
+    function getLatestHeightAndBlockHash(
+        uint256 blockNumber
+    )
         external
         view
-        returns (uint256 latestHeight, bytes32 blockHash)
+        returns (
+            uint256 latestHeight,
+            uint256 requestedBlockNumber,
+            bytes32 blockHash
+        )
     {
-        return (receivedLatestHeight, receivedBlockHashes[blockNumber]);
+        return (
+            receivedLatestHeight,
+            blockNumber,
+            receivedBlockHashes[blockNumber]
+        );
     }
 
     // ──────────────────────────────────────────────────────────────────────────────
@@ -206,8 +231,14 @@ contract LzBtcMirror is OAppRead, OAppOptionsType3 {
      * @param _channelId The channel ID to set
      * @param _active Flag to activate or deactivate the channel
      */
-    function setReadChannel(uint32 _channelId, bool _active) public override onlyOwner {
-        _setPeer(_channelId, _active ? AddressCast.toBytes32(address(this)) : bytes32(0));
+    function setReadChannel(
+        uint32 _channelId,
+        bool _active
+    ) public override onlyOwner {
+        _setPeer(
+            _channelId,
+            _active ? AddressCast.toBytes32(address(this)) : bytes32(0)
+        );
         READ_CHANNEL = _channelId;
     }
 }
