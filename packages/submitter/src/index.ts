@@ -21,11 +21,23 @@ async function main() {
   process.on('SIGINT', () => {
     console.log('Received SIGINT, shutting down...');
     submitter.stop();
+    
+    // Force exit after 3 seconds if graceful shutdown fails
+    setTimeout(() => {
+      console.log('Force exit after timeout');
+      process.exit(1);
+    }, 3000);
   });
 
   process.on('SIGTERM', () => {
     console.log('Received SIGTERM, shutting down...');
     submitter.stop();
+    
+    // Force exit after 3 seconds if graceful shutdown fails
+    setTimeout(() => {
+      console.log('Force exit after timeout');
+      process.exit(1);
+    }, 3000);
   });
 
   await submitter.start();

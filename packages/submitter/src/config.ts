@@ -20,6 +20,10 @@ export interface Config {
     maxBlocks: number;
     /** Polling interval in milliseconds */
     pollingInterval: number;
+    /** Maximum transaction retry attempts for dropped transactions */
+    maxRetries: number;
+    /** Transaction timeout in milliseconds */
+    txTimeout: number;
 }
 
 export function getConfig(): Config {
@@ -33,6 +37,8 @@ export function getConfig(): Config {
         bitcoinNetwork: requireEnv('BITCOIN_NETWORK') as "testnet" | "mainnet",
         maxBlocks: parseInt(requireEnv('MAX_BLOCKS_PER_BATCH')),
         pollingInterval: parseInt(process.env.POLLING_INTERVAL || '60000'), // Default 1 minute
+        maxRetries: parseInt(process.env.MAX_TX_RETRIES || '3'), // Default 3 retries for failed transactions
+        txTimeout: parseInt(process.env.TX_TIMEOUT || '120000'), // Default 2 minutes timeout (shorter for better polling rhythm)
     };
 }
 
