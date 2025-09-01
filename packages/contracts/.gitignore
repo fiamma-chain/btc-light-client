@@ -1,6 +1,8 @@
 # Forge
 cache/
 broadcast/
-out/*
+out/
 !out/BtcMirror.sol
 !out/BtcTxVerifier.sol
+node_modules
+.env
