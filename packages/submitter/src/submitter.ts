@@ -45,8 +45,8 @@ export class BtcSubmitter {
         console.error('Error in submit loop:', error);
       }
 
-      // Wait for next polling interval
-      await new Promise(resolve => setTimeout(resolve, this.config.pollingInterval));
+      // Wait for next polling interval with ability to exit early
+      await this.interruptibleWait(this.config.pollingInterval);
     }
   }
 
@@ -95,18 +95,81 @@ export class BtcSubmitter {
     // Sign the hash directly without the Ethereum message prefix
     const signature = await this.wallet.signingKey.sign(hash);
 
-    // Submit transaction
-    const tx = await this.contract.submit_uncheck(
-      fromHeight,
-      blockHeaders,
-      signature.v,
-      signature.r,
-      signature.s
-    );
+    // Submit transaction with timeout and retry mechanism
+    await this.submitTransactionWithTimeout(fromHeight, blockHeaders, signature);
+  }
 
-    console.log(`Submitted tx ${tx.hash}, waiting for confirmation...`);
-    await tx.wait();
-    console.log('Transaction confirmed');
+  private async submitTransactionWithTimeout(
+    fromHeight: number,
+    blockHeaders: Buffer,
+    signature: any
+  ): Promise<void> {
+    const maxRetries = this.config.maxRetries;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`Transaction attempt ${attempt}/${maxRetries}`);
+        
+        // Submit transaction
+        const tx = await this.contract.submit_uncheck(
+          fromHeight,
+          blockHeaders,
+          signature.v,
+          signature.r,
+          signature.s
+        );
+
+        console.log(`Submitted tx ${tx.hash}, waiting for confirmation...`);
+        
+        // Wait with timeout
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Transaction timeout')), this.config.txTimeout)
+        );
+
+        try {
+          await Promise.race([tx.wait(), timeoutPromise]);
+          console.log('Transaction confirmed');
+          return; // Success
+        } catch (error) {
+          if (error.message === 'Transaction timeout') {
+            console.log(`Transaction timeout after ${this.config.txTimeout/1000}s. Checking if transaction was mined...`);
+            
+            // Check if transaction exists on chain and was successful
+            const receipt = await this.provider.getTransactionReceipt(tx.hash);
+            if (receipt) {
+              if (receipt.status === 1) {
+                console.log(`Transaction was successfully mined in block ${receipt.blockNumber}`);
+                return; // Success
+              } else {
+                console.log(`Transaction was mined but failed (reverted) in block ${receipt.blockNumber}`);
+                if (attempt === maxRetries) {
+                  throw new Error('Transaction failed after all retries');
+                }
+              }
+            } else {
+              console.log('Transaction not found on chain, will retry...');
+              if (attempt === maxRetries) {
+                throw new Error('Transaction failed after all retries');
+              }
+            }
+          } else {
+            throw error; // Other errors should be re-thrown
+          }
+        }
+        
+      } catch (error) {
+        console.log(`Attempt ${attempt} failed:`, error.message);
+        
+        if (attempt === maxRetries) {
+          throw new Error(`All ${maxRetries} transaction attempts failed. Last error: ${error.message}`);
+        }
+        
+        // Wait before retry
+        const waitTime = 30000; // 30 seconds
+        console.log(`Waiting ${waitTime/1000}s before retry...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      }
+    }
   }
 
   private async getCurrentMirrorHeight(): Promise<number> {
@@ -169,6 +232,16 @@ export class BtcSubmitter {
   ): Promise<string[]> {
     const promises = hashes.map((hash: string) => getBlockHeader(this.rpc, hash));
     return await Promise.all(promises);
+  }
+
+  private async interruptibleWait(ms: number): Promise<void> {
+    const checkInterval = 1000; // Check every 1 second
+    const endTime = Date.now() + ms;
+    
+    while (Date.now() < endTime && this.isRunning) {
+      const remainingTime = Math.min(checkInterval, endTime - Date.now());
+      await new Promise(resolve => setTimeout(resolve, remainingTime));
+    }
   }
 }
 
