@@ -22,7 +22,7 @@ jobs:
           version: nightly
 
       - name: Install dependencies
-        run: cd packages/contracts && forge install
+        run: cd packages/contracts && forge install && yarn
 
       - name: Build contracts
         run: cd packages/contracts && forge build
