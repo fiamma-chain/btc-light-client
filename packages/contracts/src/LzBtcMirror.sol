@@ -139,7 +139,7 @@ contract LzBtcMirror is OAppRead, OAppOptionsType3 {
             targetEid: targetEid,
             isBlockNum: false,
             blockNumOrTimestamp: uint64(block.timestamp),
-            confirmations: 15,
+            confirmations: 5,
             to: targetBtcMirror,
             callData: callData
         });
