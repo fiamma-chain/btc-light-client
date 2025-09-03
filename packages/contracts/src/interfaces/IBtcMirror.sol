@@ -28,27 +28,15 @@ interface IBtcMirror {
      * @return requestedBlockNumber The requested block number
      * @return blockHash The hash of the requested block
      */
-    function getLatestHeightAndBlockHash(
-        uint256 blockNumber
-    )
+    function getLatestHeightAndBlockHash(uint256 blockNumber)
         external
         view
-        returns (
-            uint256 latestHeight,
-            uint256 requestedBlockNumber,
-            bytes32 blockHash
-        );
+        returns (uint256 latestHeight, uint256 requestedBlockNumber, bytes32 blockHash);
 
     /**
      * @notice Submits a new Bitcoin chain segment (80-byte headers) s
      */
-    function submit_uncheck(
-        uint256 blockHeight,
-        bytes calldata blockHeaders,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) external;
+    function submit_uncheck(uint256 blockHeight, bytes calldata blockHeaders, uint8 v, bytes32 r, bytes32 s) external;
 
     /**
      * @notice Challenges a previously submitted block by proving it's invalid, and submit the correct chain.

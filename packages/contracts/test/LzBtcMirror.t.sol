@@ -6,7 +6,9 @@ import {LzBtcMirror} from "../src/LzBtcMirror.sol";
 import {BtcMirror} from "../src/BtcMirror.sol";
 
 // OApp imports
-import {IOAppOptionsType3, EnforcedOptionParam} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OAppOptionsType3.sol";
+import {
+    IOAppOptionsType3, EnforcedOptionParam
+} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OAppOptionsType3.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 import {MessagingFee, MessagingReceipt} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
 
@@ -40,9 +42,7 @@ contract LzBtcMirrorTest is TestHelperOz5 {
 
         // Deploy BtcMirror on hub chain (hubEid)
         vm.prank(deployer);
-        hubBtcMirror = BtcMirror(
-            _deployOApp(type(BtcMirror).creationCode, abi.encode())
-        );
+        hubBtcMirror = BtcMirror(_deployOApp(type(BtcMirror).creationCode, abi.encode()));
 
         // Deploy LzBtcMirror on spoke chain (spokeEid)
         spokeLzBtcMirror = LzBtcMirror(
@@ -70,10 +70,7 @@ contract LzBtcMirrorTest is TestHelperOz5 {
 
     function test_constructor() public view {
         assertEq(spokeLzBtcMirror.owner(), address(this));
-        assertEq(
-            address(spokeLzBtcMirror.endpoint()),
-            address(endpoints[spokeEid])
-        );
+        assertEq(address(spokeLzBtcMirror.endpoint()), address(endpoints[spokeEid]));
         assertEq(spokeLzBtcMirror.targetEid(), hubEid);
         assertEq(spokeLzBtcMirror.targetBtcMirror(), address(hubBtcMirror));
     }
@@ -84,17 +81,12 @@ contract LzBtcMirrorTest is TestHelperOz5 {
         // Note: You'll need to add proper block data to BtcMirror for this test
         // This is a simplified test that assumes BtcMirror has some data
 
-        bytes memory options = OptionsBuilder
-            .newOptions()
-            .addExecutorLzReadOption(1e8, 100, 0);
+        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReadOption(1e8, 100, 0);
 
         uint256 blockNumber = 123456;
 
         // Estimate the fee
-        MessagingFee memory fee = spokeLzBtcMirror.quoteReadFee(
-            blockNumber,
-            options
-        );
+        MessagingFee memory fee = spokeLzBtcMirror.quoteReadFee(blockNumber, options);
 
         // Record logs to capture the DataReceived event
         vm.recordLogs();
@@ -105,24 +97,12 @@ contract LzBtcMirrorTest is TestHelperOz5 {
 
         // Mock response data - in real scenario this would come from hub BtcMirror
         uint256 mockLatestHeight = 123500;
-        bytes32 mockBlockHash = keccak256(
-            abi.encodePacked("mock_block_hash", blockNumber)
-        );
+        bytes32 mockBlockHash = keccak256(abi.encodePacked("mock_block_hash", blockNumber));
 
         // Process the response packet, injecting mock data
         // Note: Response data follows the format: (latestHeight, blockNumber, blockHash)
-        bytes memory responseData = abi.encode(
-            mockLatestHeight,
-            blockNumber,
-            mockBlockHash
-        );
-        this.verifyPackets(
-            spokeEid,
-            addressToBytes32(address(spokeLzBtcMirror)),
-            0,
-            address(0x0),
-            responseData
-        );
+        bytes memory responseData = abi.encode(mockLatestHeight, blockNumber, mockBlockHash);
+        this.verifyPackets(spokeEid, addressToBytes32(address(spokeLzBtcMirror)), 0, address(0x0), responseData);
 
         // Verify the data was received and stored
         assertEq(spokeLzBtcMirror.getBlockHash(blockNumber), mockBlockHash);
@@ -135,9 +115,7 @@ contract LzBtcMirrorTest is TestHelperOz5 {
             Vm.Log memory entry = entries[i];
             // Check for DataReceived event signature: DataReceived(uint256,uint256,bytes32)
             if (
-                entry.topics[0] ==
-                keccak256("DataReceived(uint256,uint256,bytes32)") &&
-                entry.topics.length == 4 // signature + 3 indexed parameters
+                entry.topics[0] == keccak256("DataReceived(uint256,uint256,bytes32)") && entry.topics.length == 4 // signature + 3 indexed parameters
             ) {
                 // Indexed parameters are stored in topics, not data
                 uint256 receivedLatestHeight = uint256(entry.topics[1]);
@@ -155,15 +133,10 @@ contract LzBtcMirrorTest is TestHelperOz5 {
     }
 
     function test_quoteReadFee() public view {
-        bytes memory options = OptionsBuilder
-            .newOptions()
-            .addExecutorLzReadOption(1e8, 100, 0);
+        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReadOption(1e8, 100, 0);
         uint256 blockNumber = 123456;
 
-        MessagingFee memory fee = spokeLzBtcMirror.quoteReadFee(
-            blockNumber,
-            options
-        );
+        MessagingFee memory fee = spokeLzBtcMirror.quoteReadFee(blockNumber, options);
 
         // Fee should be non-zero
         assertGt(fee.nativeFee, 0);
