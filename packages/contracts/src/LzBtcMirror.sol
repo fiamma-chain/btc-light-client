@@ -40,6 +40,9 @@ contract LzBtcMirror is OAppRead, OAppOptionsType3 {
     mapping(uint256 => bytes32) private receivedBlockHashes;
     uint256 private receivedLatestHeight;
 
+    /// @notice Storage for requested block number
+    mapping(uint256 => bool) public requestedBlockNumbers;
+
     /**
      * @notice Constructor to initialize the LzBtcMirror contract
      * @param _endpoint The LayerZero endpoint contract address
@@ -95,7 +98,10 @@ contract LzBtcMirror is OAppRead, OAppOptionsType3 {
         // 1. Build the read command for the target BtcMirror
         bytes memory cmd = _getCmd(blockNumber);
 
-        // 2. Send the read request via LayerZero
+        // 2. Mark the block number as requested
+        requestedBlockNumbers[blockNumber] = true;
+
+        // 3. Send the read request via LayerZero
         return _lzSend(
             READ_CHANNEL,
             cmd,
