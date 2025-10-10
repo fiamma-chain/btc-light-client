@@ -239,9 +239,9 @@ library BtcProofUtils {
             offset += 4;
             uint256 nInScriptBytes;
             (nInScriptBytes, offset) = readVarInt(rawTx, offset);
-            require(nInScriptBytes <= 34, "Scripts over 34 bytes unsupported");
+            // require(nInScriptBytes <= 34, "Scripts over 34 bytes unsupported");
             txIn.scriptLen = uint32(nInScriptBytes);
-            txIn.script = bytes32(rawTx[offset:offset + nInScriptBytes]);
+            // txIn.script = bytes32(rawTx[offset:offset + nInScriptBytes]);
             offset += nInScriptBytes;
             txIn.seqNo = Endian.reverse32(uint32(bytes4(rawTx[offset:offset + 4])));
             offset += 4;
