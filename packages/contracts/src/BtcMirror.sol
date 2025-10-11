@@ -123,6 +123,22 @@ contract BtcMirror is IBtcMirror, OwnableUpgradeable {
     function getLatestBlockTime() public view returns (uint256) {
         return latestBlockTime;
     }
+
+    /**
+     * @notice Returns latest block height and specific block hash in one call
+     * @dev This is optimized for LayerZero cross-chain reads to reduce call count
+     * @param blockNumber The specific block number to get hash for
+     * @return latestHeight The latest block height
+     * @return requestedBlockNumber The requested block number
+     * @return blockHash The hash of the requested block
+     */
+    function getLatestHeightAndBlockHash(uint256 blockNumber)
+        public
+        view
+        returns (uint256 latestHeight, uint256 requestedBlockNumber, bytes32 blockHash)
+    {
+        return (latestBlockHeight, blockNumber, blockHeightToHash[blockNumber]);
+    }
     /**
      * @notice Allows the owner to submit a new Bitcoin chain segment.
      *         This function is only callable by the owner.

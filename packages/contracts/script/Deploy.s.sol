@@ -15,7 +15,7 @@ contract DeployBtcMirror is Script {
      *         testnet Bitcoin.
      */
     function run(bool mainnet) external {
-        uint256 btcMirrorAdminPrivateKey = vm.envUint("BTCMIRROR_ADMIN_PRIVATE_KEY");
+        uint256 btcMirrorAdminPrivateKey = vm.envUint("PRIVATE_KEY");
         address btcMirrorAdmin = vm.addr(btcMirrorAdminPrivateKey);
 
         vm.startBroadcast(btcMirrorAdminPrivateKey);
