@@ -3,6 +3,7 @@ import { type DeployFunction } from 'hardhat-deploy/types'
 import { ChannelId, EndpointId } from '@layerzerolabs/lz-definitions'
 
 const contractName = 'LzBtcMirror'
+const verifierContractName = 'BtcTxVerifier'
 
 const deploy: DeployFunction = async (hre) => {
     const { getNamedAccounts, deployments } = hre
@@ -65,12 +66,37 @@ const deploy: DeployFunction = async (hre) => {
     }
 
     console.log(`Deployed contract: ${contractName}, network: ${hre.network.name}, address: ${address}`)
+    // Deploy BtcTxVerifier
+    console.log(`\n📦 Deploying ${verifierContractName}...`)
+    const verifierDeployment = await deploy(verifierContractName, {
+        from: deployer,
+        args: [address], // Use LzBtcMirror address as the mirror
+        log: true,
+        skipIfAlreadyDeployed: false,
+    })
+
+    // Verify BtcTxVerifier contract source code
+    if (hre.network.name !== 'hardhat' && hre.network.name !== 'localhost') {
+        console.log(`📋 Verifying ${verifierContractName} source code...`)
+        try {
+            await hre.run('verify:verify', {
+                address: verifierDeployment.address,
+                constructorArguments: [address],
+            })
+            console.log(`✅ ${verifierContractName} verified on block explorer!`)
+        } catch (error: any) {
+            console.log(`❌ Verification failed:`, error.message || error)
+            console.log(`You can manually verify later with:`)
+            console.log(`npx hardhat verify --network ${hre.network.name} ${verifierDeployment.address} ${address}`)
+        }
+    }
+
+    console.log(`\n✅ Deployed ${verifierContractName}, network: ${hre.network.name}, address: ${verifierDeployment.address}`)
     console.log(`Configuration:`)
-    console.log(`  - LayerZero Endpoint: ${endpointV2Deployment.address}`)
-    console.log(`  - Target EID: ${HUB_CONFIG.targetEid}`)
-    console.log(`  - Target BtcMirror: ${HUB_CONFIG.targetBtcMirror}`)
+    console.log(`  - BtcMirror Address: ${address}`)
+    console.log(`  - BtcTxVerifier Address: ${verifierDeployment.address}`)
 }
 
-deploy.tags = [contractName]
+deploy.tags = [contractName, verifierContractName]
 
 export default deploy
