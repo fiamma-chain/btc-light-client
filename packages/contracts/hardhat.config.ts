@@ -71,7 +71,8 @@ const config: HardhatUserConfig = {
     networks: {
         'ethereum': {
             eid: EndpointId.ETHEREUM_V2_MAINNET,
-            url: `https://eth-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`,
+            // url: `https://eth-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`,
+            url: `https://eth.drpc.org`,
             accounts,
         },
         'bsc': {

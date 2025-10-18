@@ -105,7 +105,7 @@ const NETWORK_CONFIGS: NetworkConfig[] = [
     
     // Plume    
     {
-        eid: EndpointId.PLUME_V2_MAINNET,
+        eid: EndpointId.PLUMEPHOENIX_V2_MAINNET,
         readLibrary: '0x7155c16E82919Ee77927d3A8cE180930f04d4428',
         requiredDVNs: ['0xaf75bfd402f3d4ee84978179a6c87d16c4bd1724'],
         executor: '0x41Bdb4aa4A63a5b2Efc531858d3118392B1A1C3d',
