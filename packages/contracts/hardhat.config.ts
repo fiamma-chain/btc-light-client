@@ -69,11 +69,46 @@ const config: HardhatUserConfig = {
         sources: './src',
     },
     networks: {
-        'base-sepolia': {
-            eid: EndpointId.BASESEP_V2_TESTNET,
-            url: `https://base-sepolia.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`,
+        'ethereum': {
+            eid: EndpointId.ETHEREUM_V2_MAINNET,
+            url: `https://eth-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`,
             accounts,
         },
+        'bsc': {
+            eid: EndpointId.BSC_V2_MAINNET,
+            url: `https://bnb-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`,
+            accounts,
+        },
+        'polygon': {
+            eid: EndpointId.POLYGON_V2_MAINNET,
+            url: `https://polygon-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`,
+            accounts,
+        },
+        'sei': {
+            eid: EndpointId.SEI_V2_MAINNET,
+            url: `https://sei-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`,
+            accounts,
+        },
+        'base': {
+            eid: EndpointId.BASE_V2_MAINNET,
+            url: `https://base-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`,
+            accounts,
+        },
+        'unichain': {
+            eid: EndpointId.UNICHAIN_V2_MAINNET,
+            url: `https://unichain-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`,
+            accounts,
+        },
+        'hyperliquid': {
+            eid: EndpointId.HYPERLIQUID_V2_MAINNET,
+            url: `https://hyperliquid-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`,
+            accounts,
+        },
+        'plume': {
+            eid: EndpointId.PLUMEPHOENIX_V2_MAINNET,
+            url: `https://rpc.plume.org`,
+            accounts,
+        },  
     },
     namedAccounts: {
         deployer: {

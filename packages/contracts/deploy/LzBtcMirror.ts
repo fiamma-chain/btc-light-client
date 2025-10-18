@@ -20,8 +20,8 @@ const deploy: DeployFunction = async (hre) => {
 
     // Hub configuration - All LzBtcMirror contracts point to Arbitrum
     const HUB_CONFIG = {
-        targetEid: EndpointId.ARBSEP_V2_TESTNET,
-        targetBtcMirror: '0x19BEE54b8EDA9c938AC1Ef164751e937596a024b',
+        targetEid: EndpointId.ARBITRUM_V2_MAINNET,
+        targetBtcMirror: '0x36A1a65947F48a34d1c93BB1eF88b3652D79f0a7',
     }
 
     if (HUB_CONFIG.targetBtcMirror === '0x0000000000000000000000000000000000000000') {
