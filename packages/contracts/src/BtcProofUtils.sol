@@ -2,6 +2,7 @@
 pragma solidity ^0.8.13;
 
 import "./Endian.sol";
+import "openzeppelin-contracts/contracts/utils/Strings.sol";
 import "./interfaces/BtcTxProof.sol";
 import "./interfaces/IBtcTxVerifier.sol";
 
@@ -131,7 +132,19 @@ library BtcProofUtils {
         // 5. Finally, validate raw transaction pays stated recipient.
         BitcoinTx memory parsedTx = parseBitcoinTx(txProof.rawTx);
         BitcoinTxOut memory txo = parsedTx.outputs[txOutIx];
-        require(destScriptHash == sha256(txo.script), "Script mismatch");
+        bytes32 scriptHash = sha256(txo.script);
+        if (destScriptHash != scriptHash) {
+            revert(
+                string(
+                    abi.encodePacked(
+                        "ScriptHashMismatch, destScriptHash: ",
+                        Strings.toHexString(uint256(destScriptHash), 32),
+                        ", scriptHash: ",
+                        Strings.toHexString(uint256(scriptHash), 32)
+                    )
+                )
+            );
+        }
         require(txo.valueSats == satoshisExpected, "Amount mismatch");
 
         // 6. Check OP_RETURN output if requested

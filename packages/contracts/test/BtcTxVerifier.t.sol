@@ -158,6 +158,12 @@ contract BtcTxVerifierTest is Test {
         assertTrue(!verif.verifyPayment(1, 258184, txP, 0, destScriptHash, 100000, false, 0, 0));
     }
 
+    function testVerifyClaim() public {
+        bytes memory destScript = hex"5120a2f66810ad4f3acc595f964d55cb79cfea5e9c7088580a60d5be3014333a16ad";
+        bytes32 destScriptHash = hex"123b6ef6393008364b890bb947470db075911d37f6af0316c5c61dd8502a07e6";
+        assertTrue(destScriptHash == sha256(destScript));
+    }
+
     function testVerifyP2TRTx2() public {
         BtcMirror mirror = createBtcMirror(
             address(this),
