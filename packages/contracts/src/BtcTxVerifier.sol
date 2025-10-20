@@ -48,7 +48,7 @@ contract BtcTxVerifier is OwnableUpgradeable, IBtcTxVerifier {
     }
 
     function verifyPayment(
-        uint256 minConfirmations,
+        uint256 _minConfirmations,
         uint256 blockNum,
         BtcTxProof calldata inclusionProof,
         uint256 txOutIx,
