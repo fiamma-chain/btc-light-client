@@ -56,7 +56,18 @@ contract DeployBtcMirror is Script {
         }
 
         // Deploy the transaction verifier
-        BtcTxVerifier verifier = new BtcTxVerifier(btcMirrorProxyAddress);
+        // BtcTxVerifier verifier = new BtcTxVerifier(btcMirrorAdmin, btcMirrorProxyAddress);
+        address verifier = Upgrades.deployTransparentProxy(
+                "BtcTxVerifier.sol",
+                btcMirrorAdmin,
+                abi.encodeCall(
+                    BtcTxVerifier.initialize,
+                    (
+                        btcMirrorAdmin,
+                        btcMirrorProxyAddress
+                    )
+                )
+            );
 
         console2.log("\nDeployment Summary:");
         console2.log("------------------");
